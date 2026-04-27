@@ -1,10 +1,10 @@
 import ContactItem from "./ContactItem.jsx";
 import SearchBar from "./SearchBar.jsx";
-import { contacts } from "../../helpers/chatData.js";
+import { contacts } from "../../../../../helpers/chatData.js";
 
 export default function Sidebar() {
   return (
-    <div className="flex h-full w-full flex-col gap-4 overflow-hidden p-4 pl-0 pr-0">
+    <div className="flex h-full w-full flex-col gap-4 overflow-hidden pl-0 pr-0">
       <div className="flex items-center">
         <SearchBar />
       </div>

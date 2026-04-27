@@ -1,6 +1,6 @@
 export default function ChatInput() {
   return (
-    <div className="flex items-center gap-5 border-t border-gray-50 p-6">
+    <div className="flex items-center gap-5 border-t border-gray-50 px-6 py-0">
       <button
         type="button"
         className="text-2xl text-gray-400 transition-colors hover:text-gray-600"

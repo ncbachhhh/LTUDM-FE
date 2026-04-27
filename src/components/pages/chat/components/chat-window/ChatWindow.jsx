@@ -1,10 +1,10 @@
 import ChatInput from "./ChatInput.jsx";
 import MessageList from "./MessageList.jsx";
-import { activeConversation } from "../../helpers/chatData.js";
+import { activeConversation } from "../../../../../helpers/chatData.js";
 
 export default function ChatWindow() {
   return (
-    <div className="flex flex-1 flex-col overflow-hidden rounded-[10px] border border-gray-100 bg-white shadow-sm">
+    <div className="flex h-full flex-1 flex-col overflow-hidden rounded-[10px] border border-gray-100 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b p-5">
         <div className="flex items-center gap-4">
           <img
@@ -22,8 +22,13 @@ export default function ChatWindow() {
         />
       </div>
 
-      <MessageList />
-      <ChatInput />
+      <div className="flex-1 overflow-y-auto bg-[#f9fafb]"> 
+        <MessageList />
+      </div>
+
+      <div className="p-4 pb-6 bg-white">
+         <ChatInput />
+      </div>
     </div>
   );
 }
