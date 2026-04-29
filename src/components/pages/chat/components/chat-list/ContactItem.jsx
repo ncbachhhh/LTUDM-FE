@@ -1,4 +1,5 @@
 export default function ContactItem({
+  id,
   name,
   message,
   time,
@@ -9,6 +10,7 @@ export default function ContactItem({
   return (
     <button
       type="button"
+      onClick={() => onSelect(id)}
       className="flex w-full items-center gap-3 rounded-xl p-1 text-left transition-colors hover:bg-gray-50"
     >
       <div

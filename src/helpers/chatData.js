@@ -3,18 +3,38 @@ export const contacts = {
     {
       id: "vuong",
       name: "Đỗ Minh Vương",
-      message: "Khẩu xà tâm Phật...",
+      message: "hahaha",
       time: "35 phút",
       avatar: "/anh-avata.svg",
       isActive: true,
+      messages: [
+        { id: 1, text: "ô là trời ", isOwn: false },
+        { id: 2, text: "????", isOwn: true },
+        { id: 3, text: "hahahah", isOwn: false },
+        { id: 3, text: "hahahah", isOwn: true },
+      ],
     },
     {
       id: "bach",
       name: "Nguyễn Chiến Bách",
-      message: "Donate cho mình nhé...",
+      message: "Sau nghỉ lễ ...",
       time: "1 giờ",
       avatar: "/anh-avata.svg",
       isActive: true,
+      messages: [
+        { id: 1, text: "Gửi tui file thiết kế với", isOwn: false },
+        { id: 1, text: "Sau nghỉ lễ nha :))", isOwn: true },
+      ],
+    },
+    {
+      id: "cuong",
+      name: "Nguyễn Quốc cường",
+      message: "Donate cho mình nhé...",
+      time: "2 giờ",
+      avatar: "/anh-avata.svg",
+      isActive: true,
+
+      messages: [{ id: 1, text: "Làm thiết kế figma đi m ê", isOwn: false }],
     },
   ],
   groups: [
@@ -26,6 +46,16 @@ export const contacts = {
       avatar: "/Icon-group.svg",
       isActive: true,
       isGroup: true,
+    },
+    {
+      id: "hahaha",
+      name: "F88",
+      message: "",
+      time: "1 năm",
+      avatar: "/Icon-group.svg",
+      isActive: true,
+      isGroup: true,
+      messages: [],
     },
   ],
 };

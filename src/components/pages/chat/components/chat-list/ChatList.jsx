@@ -2,7 +2,7 @@ import ContactItem from "./ContactItem.jsx";
 import SearchBar from "./SearchBar.jsx";
 import { contacts } from "../../../../../helpers/chatData.js";
 
-export default function Sidebar() {
+export default function Sidebar({ onSelect }) {
   return (
     <div className="flex h-full w-full flex-col gap-4 overflow-hidden pl-0 pr-0">
       <div className="flex items-center">
@@ -25,12 +25,16 @@ export default function Sidebar() {
       <div className="flex min-h-0 flex-[1.55] flex-col overflow-hidden rounded-[10px] bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-black">PEOPLE</h2>
-          <img src="/Icon-peolpe.svg" className="h-6 w-6" alt="Biểu tượng danh bạ" />
+          <img
+            src="/Icon-peolpe.svg"
+            className="h-6 w-6"
+            alt="Biểu tượng danh bạ"
+          />
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto">
           {contacts.people.map((contact) => (
-            <ContactItem key={contact.id} {...contact} />
+            <ContactItem key={contact.id} {...contact} onSelect={onSelect} />
           ))}
         </div>
       </div>
@@ -38,12 +42,16 @@ export default function Sidebar() {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-black">GROUP</h2>
-          <img src="/Icon-group.svg" className="h-6 w-6" alt="Biểu tượng nhóm" />
+          <img
+            src="/Icon-group.svg"
+            className="h-6 w-6"
+            alt="Biểu tượng nhóm"
+          />
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {contacts.groups.map((contact) => (
-            <ContactItem key={contact.id} {...contact} />
+            <ContactItem key={contact.id} {...contact} onSelect={onSelect} />
           ))}
         </div>
       </div>
