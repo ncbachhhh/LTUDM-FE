@@ -2,6 +2,7 @@ export default function ContactItem({
   id,
   name,
   message,
+  onSelect,
   time,
   isActive,
   isGroup,

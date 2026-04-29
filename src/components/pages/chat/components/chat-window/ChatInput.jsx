@@ -36,7 +36,6 @@ export default function ChatInput() {
           placeholder="Nhập tin nhắn..."
         />
       </div>
-
       {/* Nút Like - Sẽ đổi thành nút Gửi nếu có chữ */}
       <button
         type="button"
