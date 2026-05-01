@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 
 export default function ChatInput() {
   const [text, setText] = useState("");

@@ -2,10 +2,17 @@ import StatCard from "./StatCard.jsx";
 import { activeConversation } from "../../../../../helpers/chatData.js";
 import { useState } from 'react';
 import MuteNotificationModal from "./modals/MuteNotificationModal.jsx";
+import SearchChat from "./modals/SearchChat.jsx";
+import FileManager from "./modals/FileManager.jsx";
+import EditNicknameModal from "./modals/EditNickname.jsx";
+import ChangeEmojiModal from "./modals/ChangeEmoji.jsx";
 
-export default function InfoPanel() {
+export default function InfoPanel({ onEmojiChange }) {
   const [isMuteModalOpen, setIsMuteModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
+  const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
+
 
   //Set trạng thái bật/tắt khi click thông báo
   const handleNotificationClick = () => {
@@ -17,6 +24,18 @@ export default function InfoPanel() {
       setIsMuteModalOpen(true);
     }
   }; 
+
+  if (currentView === 'search') {
+    return (
+        <SearchChat onClose={() => setCurrentView('default')} />
+    );
+  }
+
+   if (currentView === 'file-manager') {
+    return (
+        <FileManager onClose={() => setCurrentView('default')} />
+    );
+  }
 
   return (
     //Avt+ Tên+ Trạng thái hoạt động
@@ -60,7 +79,8 @@ export default function InfoPanel() {
           </ActionBtn>
 
           {/* Nút tìm kiếm */}
-          <ActionBtn label="Tìm kiếm">
+          <ActionBtn label="Tìm kiếm"
+          onClick={() => setCurrentView('search')}>
             <img
               src="/kinh-lup.svg"
               alt="Tìm kiếm"
@@ -85,6 +105,7 @@ export default function InfoPanel() {
 
         <button
           type="button"
+          onClick={() => setCurrentView('file-manager')}
           className="mt-2 w-full rounded-2xl bg-[#0033FF]/5 py-2 text-[11px] font-black uppercase tracking-widest text-slate-500"
         >
           Xem tất cả
@@ -98,6 +119,14 @@ export default function InfoPanel() {
           <button
             key={setting}
             type="button"
+            onClick={() => {
+              if (setting.includes('biệt danh')) {
+                setIsNicknameModalOpen(true); 
+              }
+              else if (setting.includes('cảm xúc')) {
+                setIsEmojiModalOpen(true);
+              }
+            }}
             className="cursor-pointer rounded-xl bg-[#F6F8FF] py-2 px-1 text-left text-[11px] font-bold text-slate-700"
           >
             {setting}
@@ -110,6 +139,21 @@ export default function InfoPanel() {
         onConfirm={(duration) => {
           console.log("Đã chọn thời gian tắt:", duration);
           setIsMuted(true);
+        }}
+      />
+      <EditNicknameModal 
+        isOpen={isNicknameModalOpen} 
+        onClose={() => setIsNicknameModalOpen(false)} 
+      />
+
+      <ChangeEmojiModal 
+        isOpen={isEmojiModalOpen}
+        onClose={() => setIsEmojiModalOpen(false)}
+        onSelectEmoji={(newEmoji) => {
+        console.log("Đã chọn Emoji mới:", newEmoji);
+        if (onEmojiChange) {
+            onEmojiChange(newEmoji); 
+          }
         }}
       />
     </div>
