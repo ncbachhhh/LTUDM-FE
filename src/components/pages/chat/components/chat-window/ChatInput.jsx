@@ -1,3 +1,4 @@
+
 export default function ChatInput() {
   return (
     <div className="flex items-center gap-5 border-t border-gray-50 px-6 py-0">
