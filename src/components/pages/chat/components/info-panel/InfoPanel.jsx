@@ -13,6 +13,7 @@ export default function InfoPanel({ onEmojiChange }) {
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
 
+  const [currentView, setCurrentView] = useState('default');
 
   //Set trạng thái bật/tắt khi click thông báo
   const handleNotificationClick = () => {
