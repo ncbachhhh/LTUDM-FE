@@ -12,7 +12,7 @@ export default function MessageItem({
     <div
       className={`flex w-full mb-2 ${isOwn ? "justify-end" : "justify-start"}`}
     >
-      {/* 1. HIỂN THỊ AVATAR (Chỉ hiện nếu là tin nhắn của đối phương) */}
+      {/* HIỂN THỊ AVATAR (Chỉ hiện nếu là tin nhắn của đối phương) */}
       {!isOwn && (
         <div className="flex-shrink-0 mr-2 self-end">
           <img
@@ -26,7 +26,7 @@ export default function MessageItem({
       <div
         className={`flex flex-col max-w-[75%] ${isOwn ? "items-end" : "items-start"}`}
       >
-        {/* 2. PHẦN TRẢ LỜI (REPLY) - Nếu có */}
+        {/* PHẦN TRẢ LỜI (REPLY) - Nếu có */}
         {isReply && (
           <div className="flex flex-col mb-[-10px] opacity-60 scale-95 origin-bottom-right">
             <div className="bg-gray-100 px-3 py-2 pb-4 rounded-t-2xl text-[13px] text-gray-500 italic border-l-4 border-blue-400">
@@ -35,7 +35,7 @@ export default function MessageItem({
           </div>
         )}
 
-        {/* 3. BONG BÓNG CHAT CHÍNH */}
+        {/* BONG BÓNG CHAT CHÍNH */}
         <div
           className={`px-4 py-2 rounded-[20px] text-[15px] leading-snug shadow-sm break-words
             ${
@@ -47,7 +47,7 @@ export default function MessageItem({
           {text}
         </div>
 
-        {/* 4. THỜI GIAN / TRẠNG THÁI */}
+        {/* THỜI GIAN / TRẠNG THÁI */}
         {time && (
           <span className="mt-1 px-1 text-[11px] font-medium text-gray-400">
             {isOwn ? `Đã gửi ${time}` : time}

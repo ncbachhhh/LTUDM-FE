@@ -1,13 +1,13 @@
 import ChatInput from "./ChatInput.jsx";
 import MessageList from "./MessageList.jsx";
 
-export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen }) {
+export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmoji }) {
   {
-    /*3.Giao diện chính của khung chat khi có dữ liệu */
+    /*Giao diện chính của khung chat khi có dữ liệu */
   }
   return (
     <div className="flex h-full flex-1 flex-col overflow-hidden rounded-[10px] border border-gray-100 bg-white shadow-sm">
-      {/*thanh header: hiển tị avatar, tên người chat */}
+      {/*thanh header: hiển thị avatar, tên người chat */}
       <div className="flex items-center justify-between border-b p-5">
         <div className="flex items-center gap-4">
           <img
@@ -37,7 +37,7 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen }) {
       </div>
       {/*Chỗ nhập tin nhắn, icon, gửi ảnh */}
       <div className="p-4 pb-6 bg-white">
-        <ChatInput />
+        <ChatInput currentEmoji={currentEmoji}/>
       </div>
     </div>
   );

@@ -13,7 +13,6 @@ export default function MessageList({ messages, avatar }) {
   }
 
   return (
-    /* TRƯỜNG HỢP 2: ĐÃ CÓ TIN NHẮN */
     <div className="flex flex-col gap-2 p-6">
       {messages.map((msg) => (
         <MessageItem

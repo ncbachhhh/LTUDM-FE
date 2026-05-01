@@ -10,7 +10,7 @@ const ChatPage = () => {
   const [currentConvo, setCurrentConvo] = useState(null);
   const [isInfoOpen, setIsInfoOpen] = useState(true);
 
-  // 2. Hàm xử lý khi click vào 1 người trong danh sách
+  // Hàm xử lý khi click vào 1 người trong danh sách
   const handleSelectContact = (id) => {
     // Tìm trong people hoặc groups xem ai trùng ID
     const found =
@@ -20,15 +20,16 @@ const ChatPage = () => {
     if (found) setCurrentConvo(found); // Cập nhật người đang chat
   };
 
+  const [currentEmoji, setCurrentEmoji] = useState('👍');
+
   return (
-    // Nền xanh nhạt toàn trang, có padding p-6 và gap-6 giữa các khối
     <div className="flex h-full w-full bg-[#E8EEFB] p-6 gap-6 overflow-hidden">
-      {/* CỘT 1: DANH SÁCH CHAT (Luôn hiện) */}
+      {/* DANH SÁCH CHAT (Luôn hiện) */}
       <div className="h-full w-[320px] shrink-0">
         <ChatList onSelect={handleSelectContact} />
       </div>
 
-      {/* CỘT 2: KHỐI CHÍNH (Chào mừng HOẶC Cửa sổ Chat) */}
+      {/* KHỐI CHÍNH (Chào mừng HOẶC Cửa sổ Chat) */}
       <div className="h-full flex-1    ">
         {!currentConvo ? (
           <div className="h-full rounded-2xl ">
@@ -37,20 +38,21 @@ const ChatPage = () => {
         ) : (
           <div className="flex h-full gap-6">
             <div className="flex-1 h-full">
-              {/* 3. Truyền DỮ LIỆU ĐỘNG xuống ChatWindow */}
+              {/*Truyền DỮ LIỆU ĐỘNG xuống ChatWindow */}
               <ChatWindow
                 data={currentConvo}
                 isInfoOpen={isInfoOpen}
                 setIsInfoOpen={setIsInfoOpen}
+                currentEmoji={currentEmoji} 
               />
             </div>
 
-            {/* CỘT 3: THÔNG TIN CHI TIẾT (Chỉ hiện khi ĐÃ CHỌN CHAT và isInfoOpen = true) */}
+            {/* THÔNG TIN CHI TIẾT (Chỉ hiện khi ĐÃ CHỌN CHAT và isInfoOpen = true) */}
             {isInfoOpen && (
               <div className="h-full w-[340px] shrink-0 animate-fade-in">
-                {/* InfoPanel cũng phải bọc trong div trắng bo góc nếu bạn muốn nó là 1 card riêng */}
 
-                <InfoPanel data={currentConvo} />
+                <InfoPanel data={currentConvo} 
+                onEmojiChange={(newEmoji) => setCurrentEmoji(newEmoji)} />
               </div>
             )}
           </div>

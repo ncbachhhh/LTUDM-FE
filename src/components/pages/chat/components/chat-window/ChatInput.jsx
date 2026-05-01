@@ -1,5 +1,6 @@
+import React, { useState } from "react";
 
-export default function ChatInput() {
+export default function ChatInput({ currentEmoji = "👍" }) {
   const [text, setText] = useState("");
 
   const handleSendMessage = (e) => {
@@ -41,7 +42,7 @@ export default function ChatInput() {
         className="text-3xl text-blue-600 transition-transform hover:scale-110"
       >
         {text.trim() === "" ? (
-          <img src="/nut-like.svg" className="h-6 w-6" alt="Biểu tượng thích" />
+          <span className="text-3xl leading-none">{currentEmoji}</span>
         ) : (
           /* Icon Gửi (Máy bay giấy) khi có nội dung nhập */
           <svg
