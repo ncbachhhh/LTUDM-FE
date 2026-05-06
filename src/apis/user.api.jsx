@@ -13,11 +13,18 @@ const UserAPI = {
     register: async (data) => {
         try {
             const response = await axios.post(API_URL.REGISTER, data);
-            console.log(response.data);
-            return response.data;
-        }
-        catch (error) {
-            console.log(error);
+
+            return {
+                isSuccess: true,
+                data: response.data.data,
+                message: response.data.message,
+            };
+        } catch (error) {
+            return {
+                isSuccess: false,
+                data: null,
+                message: error.response?.data?.message || "Đăng ký thất bại",
+            };
         }
     },
 
