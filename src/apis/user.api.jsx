@@ -1,5 +1,5 @@
 import axios from "axios";
-// import authorizedAxios from "../helpers/authorizedAxios.js";
+import authorizedAxios from "../helpers/authorizedAxios.js";
 
 const URL = `http://localhost:8080/api/v1`;
 
@@ -7,7 +7,7 @@ const API_URL = {
     LOGIN: `${URL}/auth/login`,
     REGISTER: `${URL}/auth/register`,
     GET_PROFILE: `${URL}/users/me`,
-}
+};
 
 const UserAPI = {
     register: async (data) => {
@@ -35,10 +35,14 @@ const UserAPI = {
             localStorage.removeItem("accessToken");
             localStorage.removeItem("refreshToken");
 
-            if (response.data.data.accessToken) {
-                axios.defaults.headers["Authorization"] = `Bearer ${response.data.data.accessToken}`;
-                localStorage.setItem("accessToken", response.data.data.accessToken);
-                localStorage.setItem("refreshToken", response.data.data.refreshToken);
+            const accessToken = response.data.data.accessToken;
+            const refreshToken = response.data.data.refreshToken;
+
+            if (accessToken) {
+                localStorage.setItem("accessToken", accessToken);
+                localStorage.setItem("refreshToken", refreshToken);
+
+                axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
             }
 
             return {
@@ -50,15 +54,15 @@ const UserAPI = {
             return {
                 isSuccess: false,
                 data: null,
-                message: error.response.data.message,
+                message: error.response?.data?.message || "Đăng nhập thất bại",
             };
         }
     },
 
     getProfile: async () => {
         try {
-            const response = await axios.get(API_URL.GET_PROFILE);
-            console.log(response.data);
+            const response = await authorizedAxios().get(API_URL.GET_PROFILE);
+
             return {
                 isSuccess: true,
                 data: response.data.data,
@@ -68,10 +72,10 @@ const UserAPI = {
             return {
                 isSuccess: false,
                 data: null,
-                message: error.response.data.message,
+                message: error.response?.data?.message || "Lấy profile thất bại",
             };
         }
     },
-}
+};
 
 export default UserAPI;

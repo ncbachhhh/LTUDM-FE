@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ChatInput from "./ChatInput.jsx";
 import MessageList from "./MessageList.jsx";
+import MessageAPI from "../../../../../apis/message.api.jsx";
 import WebSocketAPI from "../../../../../apis/websocket.api.jsx";
-import { useAuth } from "../../../../../contexts/AuthContext.jsx";
+import { useAuth } from "../../../../../contexts/auth.context.jsx";
 
 const DEFAULT_CONVERSATION_ID = "2b7deef1-c0d1-4348-aaf1-5cb7a8bab2f6";
 
@@ -14,34 +15,106 @@ export default function ChatWindow({
                                    }) {
     const { user } = useAuth();
 
-    const [messages, setMessages] = useState(data.messages || []);
+    const [messages, setMessages] = useState([]);
+    const [loadingMessages, setLoadingMessages] = useState(false);
     const [socketStatus, setSocketStatus] = useState("Đang kết nối...");
+    const [errorMessage, setErrorMessage] = useState("");
 
-    const conversationId = DEFAULT_CONVERSATION_ID;
+    const messageContainerRef = useRef(null);
+
     const currentUserId =
-        user?.id || user?.user_id || localStorage.getItem("userId");
+        user?.id ||
+        user?.user_id ||
+        user?.userId ||
+        localStorage.getItem("userId");
+
+    const conversationId =
+        data?.conversation_id ||
+        data?.conversationId ||
+        DEFAULT_CONVERSATION_ID;
+
+    const scrollToBottom = (behavior = "auto") => {
+        const container = messageContainerRef.current;
+
+        if (!container) return;
+
+        container.scrollTo({
+            top: container.scrollHeight,
+            behavior,
+        });
+    };
+
+    const getMessageId = (message) => {
+        return message.id || message.message_id || `${Date.now()}-${Math.random()}`;
+    };
+
+    const getSenderId = (message) => {
+        return message.sender_id || message.senderId;
+    };
+
+    const getCreatedAt = (message) => {
+        return message.created_at || message.createdAt;
+    };
 
     const mapMessageToUI = (message) => {
+        const senderId = getSenderId(message);
+        const createdAt = getCreatedAt(message);
+
         return {
-            id: message.id || Date.now(),
+            id: getMessageId(message),
             text: message.content,
-            isOwn: String(message.sender_id) === String(currentUserId),
-            time: message.created_at
-                ? new Date(message.created_at).toLocaleTimeString("vi-VN", {
+            type: message.type || "TEXT",
+            isOwn: String(senderId) === String(currentUserId),
+            time: createdAt
+                ? new Date(createdAt).toLocaleTimeString("vi-VN", {
                     hour: "2-digit",
                     minute: "2-digit",
                 })
                 : "vừa xong",
-            type: message.type,
             raw: message,
         };
     };
+
+    useEffect(() => {
+        let mounted = true;
+
+        const fetchMessages = async () => {
+            if (!conversationId) return;
+
+            setLoadingMessages(true);
+            setErrorMessage("");
+            setMessages([]);
+
+            const result = await MessageAPI.getMessagesByConversation(conversationId);
+
+            if (!mounted) return;
+
+            if (result.isSuccess) {
+                const mappedMessages = result.data.map(mapMessageToUI);
+                setMessages(mappedMessages);
+
+                MessageAPI.markConversationRead(conversationId);
+            } else {
+                setErrorMessage(result.message || "Không lấy được tin nhắn");
+            }
+
+            setLoadingMessages(false);
+        };
+
+        fetchMessages();
+
+        return () => {
+            mounted = false;
+        };
+    }, [conversationId, currentUserId]);
 
     useEffect(() => {
         let subscription = null;
         let mounted = true;
 
         const initSocket = async () => {
+            if (!conversationId) return;
+
             try {
                 setSocketStatus("Đang kết nối...");
 
@@ -51,8 +124,10 @@ export default function ChatWindow({
                         if (!mounted) return;
 
                         setMessages((prevMessages) => {
+                            const newMessageId = getMessageId(newMessage);
+
                             const existed = prevMessages.some(
-                                (msg) => msg.id === newMessage.id
+                                (msg) => String(msg.id) === String(newMessageId)
                             );
 
                             if (existed) return prevMessages;
@@ -81,6 +156,22 @@ export default function ChatWindow({
             subscription?.unsubscribe();
         };
     }, [conversationId, currentUserId]);
+
+    useEffect(() => {
+        if (loadingMessages) return;
+
+        requestAnimationFrame(() => {
+            scrollToBottom("auto");
+        });
+    }, [conversationId, loadingMessages]);
+
+    useEffect(() => {
+        if (loadingMessages) return;
+
+        requestAnimationFrame(() => {
+            scrollToBottom("smooth");
+        });
+    }, [messages, loadingMessages]);
 
     const handleSendMessage = async (content) => {
         const result = await WebSocketAPI.sendTextMessage(conversationId, content);
@@ -131,8 +222,21 @@ export default function ChatWindow({
                 </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto bg-[#f9fafb]">
-                <MessageList messages={messages} avatar={data.avatar} />
+            <div
+                ref={messageContainerRef}
+                className="flex-1 overflow-y-auto bg-[#f9fafb]"
+            >
+                {loadingMessages ? (
+                    <div className="mt-10 text-center text-sm font-semibold text-gray-400">
+                        Đang tải tin nhắn...
+                    </div>
+                ) : errorMessage ? (
+                    <div className="mt-10 text-center text-sm font-semibold text-red-500">
+                        {errorMessage}
+                    </div>
+                ) : (
+                    <MessageList messages={messages} avatar={data.avatar} />
+                )}
             </div>
 
             <div className="p-4 pb-6 bg-white">

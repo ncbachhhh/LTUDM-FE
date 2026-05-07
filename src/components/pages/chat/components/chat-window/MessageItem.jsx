@@ -2,12 +2,15 @@ import React from "react";
 
 export default function MessageItem({
                                       text,
+                                      type = "TEXT",
                                       isOwn,
                                       avatar,
                                       time,
                                       isReply,
                                       replyText,
                                     }) {
+  const isImage = type === "IMAGE";
+
   return (
       <div
           className={`flex w-full mb-2 ${isOwn ? "justify-end" : "justify-start"}`}
@@ -35,16 +38,24 @@ export default function MessageItem({
               </div>
           )}
 
-          <div
-              className={`px-4 py-2 rounded-[20px] text-[15px] leading-snug shadow-sm break-words
-            ${
-                  isOwn
-                      ? "bg-[#0084FF] text-white rounded-br-none"
-                      : "bg-[#F0F2F5] text-[#050505] rounded-bl-none"
-              }`}
-          >
-            {text}
-          </div>
+          {isImage ? (
+              <img
+                  src={text}
+                  alt="Ảnh tin nhắn"
+                  className="max-w-[260px] rounded-[20px] object-cover shadow-sm"
+              />
+          ) : (
+              <div
+                  className={`px-4 py-2 rounded-[20px] text-[15px] leading-snug shadow-sm break-words
+              ${
+                      isOwn
+                          ? "bg-[#0084FF] text-white rounded-br-none"
+                          : "bg-[#F0F2F5] text-[#050505] rounded-bl-none"
+                  }`}
+              >
+                {text}
+              </div>
+          )}
 
           {time && (
               <span className="mt-1 px-1 text-[11px] font-medium text-gray-400">

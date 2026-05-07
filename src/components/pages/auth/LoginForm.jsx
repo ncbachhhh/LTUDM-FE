@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import UserAPI from "../apis/user.api.jsx";
-import { useAuth } from "../contexts/AuthContext.jsx";
+import UserAPI from "../../../apis/user.api.jsx";
+import { useAuth } from "../../../contexts/auth.context.jsx";
 
 const LoginForm = ({ setView }) => {
     const navigate = useNavigate();

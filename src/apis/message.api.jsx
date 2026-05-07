@@ -1,57 +1,45 @@
-import axios from "axios";
+import authorizedAxios from "../helpers/authorizedAxios.js";
 
 const URL = "http://localhost:8080/api/v1";
 
-export const DEFAULT_CONVERSATION_ID = "2b7deef1-c0d1-4348-aaf1-5cb7a8bab2f6";
-
 const API_URL = {
-    SEND_MESSAGE: `${URL}/messages`,
     GET_MESSAGES_BY_CONVERSATION: (conversationId) =>
         `${URL}/messages/conversation/${conversationId}`,
-};
 
-const getAuthHeader = () => {
-    const accessToken = localStorage.getItem("accessToken");
+    MARK_CONVERSATION_READ: (conversationId) =>
+        `${URL}/messages/conversation/${conversationId}/read-all`,
 
-    return {
-        Authorization: `Bearer ${accessToken}`,
-    };
+    SEND_MESSAGE: `${URL}/messages`,
 };
 
 const MessageAPI = {
-    sendMessage: async (content, conversationId = DEFAULT_CONVERSATION_ID) => {
+    getMessagesByConversation: async (conversationId) => {
         try {
-            const data = {
-                conversation_id: conversationId,
-                content,
-                type: "TEXT",
-            };
-
-            const response = await axios.post(API_URL.SEND_MESSAGE, data, {
-                headers: getAuthHeader(),
-            });
+            const response = await authorizedAxios().get(
+                API_URL.GET_MESSAGES_BY_CONVERSATION(conversationId)
+            );
 
             return {
                 isSuccess: true,
-                data: response.data.data,
+                data: response.data.data || [],
                 message: response.data.message,
             };
         } catch (error) {
+            console.error("GET MESSAGES ERROR:", error);
+
             return {
                 isSuccess: false,
-                data: null,
-                message: error.response?.data?.message || "Gửi tin nhắn thất bại",
+                data: [],
+                message: error.response?.data?.message || "Không lấy được tin nhắn",
             };
         }
     },
 
-    getMessagesByConversation: async (conversationId = DEFAULT_CONVERSATION_ID) => {
+    markConversationRead: async (conversationId) => {
         try {
-            const response = await axios.get(
-                API_URL.GET_MESSAGES_BY_CONVERSATION(conversationId),
-                {
-                    headers: getAuthHeader(),
-                }
+            const response = await authorizedAxios().put(
+                API_URL.MARK_CONVERSATION_READ(conversationId),
+                {}
             );
 
             return {
@@ -60,10 +48,37 @@ const MessageAPI = {
                 message: response.data.message,
             };
         } catch (error) {
+            console.error("MARK CONVERSATION READ ERROR:", error);
+
             return {
                 isSuccess: false,
-                data: [],
-                message: error.response?.data?.message || "Lấy tin nhắn thất bại",
+                data: null,
+                message:
+                    error.response?.data?.message || "Không đánh dấu đã đọc được",
+            };
+        }
+    },
+
+    sendTextMessageREST: async (conversationId, content) => {
+        try {
+            const response = await authorizedAxios().post(API_URL.SEND_MESSAGE, {
+                conversation_id: conversationId,
+                content,
+                type: "TEXT",
+            });
+
+            return {
+                isSuccess: true,
+                data: response.data.data,
+                message: response.data.message,
+            };
+        } catch (error) {
+            console.error("SEND MESSAGE REST ERROR:", error);
+
+            return {
+                isSuccess: false,
+                data: null,
+                message: error.response?.data?.message || "Gửi tin nhắn thất bại",
             };
         }
     },
