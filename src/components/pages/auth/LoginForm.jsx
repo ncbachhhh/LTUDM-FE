@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UserAPI from "../../../apis/user.api.jsx";
 import { useAuth } from "../../../contexts/auth.context.jsx";
+import { useNotification } from "../../../contexts/notification.context.jsx";
 
 const LoginForm = ({ setView }) => {
     const navigate = useNavigate();
     const { getProfile } = useAuth();
+    const { api } = useNotification();
 
     const [formData, setFormData] = useState({
         email: "",
@@ -13,7 +15,6 @@ const LoginForm = ({ setView }) => {
     });
 
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState("");
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -26,10 +27,13 @@ const LoginForm = ({ setView }) => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setMessage("");
 
         if (!formData.email || !formData.password) {
-            setMessage("Vui lòng nhập đầy đủ email và mật khẩu");
+            api.warning({
+                message: "Thiếu thông tin",
+                description: "Vui lòng nhập đầy đủ email và mật khẩu",
+                placement: "topRight",
+            });
             return;
         }
 
@@ -45,11 +49,22 @@ const LoginForm = ({ setView }) => {
         if (result?.isSuccess) {
             await getProfile();
 
+            api.success({
+                message: "Đăng nhập thành công",
+                description: "Đang chuyển vào trang chat",
+                placement: "topRight",
+            });
+
             setLoading(false);
             navigate("/chat");
         } else {
             setLoading(false);
-            setMessage(result?.message || "Đăng nhập thất bại");
+
+            api.error({
+                message: "Đăng nhập thất bại",
+                description: result?.message || "Email hoặc mật khẩu không đúng",
+                placement: "topRight",
+            });
         }
     };
 
@@ -84,12 +99,6 @@ const LoginForm = ({ setView }) => {
                     placeholder="Nhập mật khẩu"
                     className="w-full p-4 rounded-xl bg-[#C7D2FE] text-blue-900 font-semibold placeholder-blue-500/70 outline-none focus:ring-2 focus:ring-blue-600"
                 />
-
-                {message && (
-                    <p className="text-sm text-center font-semibold text-red-600">
-                        {message}
-                    </p>
-                )}
 
                 <button
                     type="submit"

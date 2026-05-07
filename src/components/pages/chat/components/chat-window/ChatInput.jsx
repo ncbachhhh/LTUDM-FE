@@ -1,6 +1,9 @@
 import React, { useState } from "react";
+import { useNotification } from "../../../../../contexts/notification.context.jsx";
 
 export default function ChatInput({ currentEmoji = "👍", onSendMessage }) {
+    const { api } = useNotification();
+
     const [text, setText] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -20,7 +23,11 @@ export default function ChatInput({ currentEmoji = "👍", onSendMessage }) {
         if (result?.isSuccess) {
             setText("");
         } else {
-            alert(result?.message || "Gửi tin nhắn thất bại");
+            api.error({
+                message: "Gửi tin nhắn thất bại",
+                description: result?.message || "Có lỗi xảy ra khi gửi tin nhắn",
+                placement: "topRight",
+            });
         }
     };
 

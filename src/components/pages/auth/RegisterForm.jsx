@@ -1,7 +1,10 @@
 import React, { useState } from "react";
-import UserAPI from "../../../apis/user.api.jsx"; // sửa lại path cho đúng project của bạn
+import UserAPI from "../../../apis/user.api.jsx";
+import { useNotification } from "../../../contexts/notification.context.jsx";
 
 const RegisterForm = ({ setView }) => {
+  const { api } = useNotification();
+
   const [formData, setFormData] = useState({
     email: "",
     username: "",
@@ -11,7 +14,6 @@ const RegisterForm = ({ setView }) => {
   });
 
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -24,20 +26,36 @@ const RegisterForm = ({ setView }) => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setMessage("");
 
-    if (!formData.email || !formData.username || !formData.password || !formData.display_name) {
-      setMessage("Vui lòng nhập đầy đủ thông tin");
+    if (
+        !formData.email ||
+        !formData.username ||
+        !formData.password ||
+        !formData.display_name
+    ) {
+      api.warning({
+        message: "Thiếu thông tin",
+        description: "Vui lòng nhập đầy đủ thông tin đăng ký",
+        placement: "topRight",
+      });
       return;
     }
 
     if (formData.password.length < 8) {
-      setMessage("Mật khẩu phải có ít nhất 8 ký tự");
+      api.warning({
+        message: "Mật khẩu không hợp lệ",
+        description: "Mật khẩu phải có ít nhất 8 ký tự",
+        placement: "topRight",
+      });
       return;
     }
 
     if (!formData.terms) {
-      setMessage("Bạn cần đồng ý với điều khoản dịch vụ");
+      api.warning({
+        message: "Chưa đồng ý điều khoản",
+        description: "Bạn cần đồng ý với điều khoản dịch vụ",
+        placement: "topRight",
+      });
       return;
     }
 
@@ -55,10 +73,19 @@ const RegisterForm = ({ setView }) => {
     setLoading(false);
 
     if (result?.isSuccess) {
-      alert("Đăng ký thành công");
+      api.success({
+        message: "Đăng ký thành công",
+        description: "Bạn có thể đăng nhập ngay bây giờ",
+        placement: "topRight",
+      });
+
       setView("login");
     } else {
-      setMessage(result?.message || "Đăng ký thất bại");
+      api.error({
+        message: "Đăng ký thất bại",
+        description: result?.message || "Vui lòng kiểm tra lại thông tin",
+        placement: "topRight",
+      });
     }
   };
 
@@ -158,12 +185,6 @@ const RegisterForm = ({ setView }) => {
               của ứng dụng Chat.
             </label>
           </div>
-
-          {message && (
-              <p className="text-sm text-center font-semibold text-red-600">
-                {message}
-              </p>
-          )}
 
           <button
               type="submit"

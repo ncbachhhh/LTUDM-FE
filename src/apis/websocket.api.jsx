@@ -38,26 +38,26 @@ const WebSocketAPI = {
 
         connectPromise = new Promise((resolve, reject) => {
             stompClient.onConnect = () => {
-                console.log("✅ STOMP CONNECTED");
+                console.log("Da ket noi stomp");
                 connectPromise = null;
                 resolve(stompClient);
             };
 
             stompClient.onStompError = (frame) => {
-                console.error("❌ STOMP ERROR:", frame.headers?.message);
-                console.error("DETAIL:", frame.body);
+                console.error("Lỗi:", frame.headers?.message);
+                console.error("Chi tiết:", frame.body);
                 connectPromise = null;
                 reject(frame);
             };
 
             stompClient.onWebSocketError = (error) => {
-                console.error("❌ WEB SOCKET ERROR:", error);
+                console.error("lỗi wbe socket:", error);
                 connectPromise = null;
                 reject(error);
             };
 
             stompClient.onWebSocketClose = (event) => {
-                console.warn("⚠️ WEB SOCKET CLOSED:", event);
+                console.warn("Đóng websocket:", event);
                 connectPromise = null;
             };
         });
@@ -72,11 +72,11 @@ const WebSocketAPI = {
 
         const topic = `/topic/conversation/${conversationId}`;
 
-        console.log("📌 SUBSCRIBE:", topic);
+        console.log("SUBSCRIBE:", topic);
 
         return client.subscribe(topic, (message) => {
             const data = JSON.parse(message.body);
-            console.log("📩 RECEIVE:", data);
+            console.log("RECEIVE:", data);
             callback(data);
         });
     },
@@ -94,7 +94,7 @@ const WebSocketAPI = {
 
             const destination = `/app/chat/${conversationId}`;
 
-            console.log("📤 SEND:", destination, content);
+            console.log("SEND:", destination, content);
 
             client.publish({
                 destination,
@@ -109,7 +109,7 @@ const WebSocketAPI = {
                 message: "Đã gửi",
             };
         } catch (error) {
-            console.error("SEND SOCKET ERROR:", error);
+            console.error("Gửi lỗi:", error);
 
             return {
                 isSuccess: false,
