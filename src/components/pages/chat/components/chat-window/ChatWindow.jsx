@@ -5,8 +5,6 @@ import MessageAPI from "../../../../../apis/message.api.jsx";
 import WebSocketAPI from "../../../../../apis/websocket.api.jsx";
 import { useAuth } from "../../../../../contexts/auth.context.jsx";
 
-const DEFAULT_CONVERSATION_ID = "2b7deef1-c0d1-4348-aaf1-5cb7a8bab2f6";
-
 export default function ChatWindow({
                                        data,
                                        isInfoOpen,
@@ -31,7 +29,7 @@ export default function ChatWindow({
     const conversationId =
         data?.conversation_id ||
         data?.conversationId ||
-        DEFAULT_CONVERSATION_ID;
+        data?.id;
 
     const scrollToBottom = (behavior = "auto") => {
         const container = messageContainerRef.current;
