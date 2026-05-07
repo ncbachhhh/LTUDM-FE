@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import UserAPI from "../../../apis/user.api.jsx"; // sửa path cho đúng project của bạn
+import UserAPI from "../apis/user.api.jsx";
+import { useAuth } from "../contexts/AuthContext.jsx";
 
 const LoginForm = ({ setView }) => {
     const navigate = useNavigate();
+    const { getProfile } = useAuth();
 
     const [formData, setFormData] = useState({
         email: "",
@@ -40,11 +42,13 @@ const LoginForm = ({ setView }) => {
 
         const result = await UserAPI.login(data);
 
-        setLoading(false);
-
         if (result?.isSuccess) {
+            await getProfile();
+
+            setLoading(false);
             navigate("/chat");
         } else {
+            setLoading(false);
             setMessage(result?.message || "Đăng nhập thất bại");
         }
     };
