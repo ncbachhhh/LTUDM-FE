@@ -1,7 +1,6 @@
 import authorizedAxios from "../helpers/authorizedAxios.js";
-import {CONST} from "../helpers/CONST.js";
 
-const URL = `http://${CONST.host_ip}:8080/api/v1`;
+const URL = `${import.meta.env.VITE_HOST_URL}/api/v1`;
 
 const API_URL = {
     GET_MESSAGES_BY_CONVERSATION: (conversationId) =>

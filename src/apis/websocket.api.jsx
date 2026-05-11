@@ -1,8 +1,7 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client/dist/sockjs.min.js";
-import {CONST} from "../helpers/CONST.js";
 
-const WS_URL = `http://${CONST.host_ip}:8080/api/v1/ws`;
+const WS_URL = `${import.meta.env.VITE_HOST_URL}/api/v1/ws`;
 
 let stompClient = null;
 let connectPromise = null;

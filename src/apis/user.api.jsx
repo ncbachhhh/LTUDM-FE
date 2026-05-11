@@ -1,8 +1,7 @@
 import axios from "axios";
 import authorizedAxios from "../helpers/authorizedAxios.js";
-import {CONST} from "../helpers/CONST.js";
 
-const URL = `http://${CONST.host_ip}:8080/api/v1`;
+const URL = `${import.meta.env.VITE_HOST_URL}/api/v1`;
 
 const API_URL = {
     LOGIN: `${URL}/auth/login`,
@@ -19,7 +18,11 @@ const UserAPI = {
         try {
             clearAuthHeader();
 
-            const response = await axios.post(API_URL.REGISTER, data);
+            const response = await axios.post(API_URL.REGISTER, data, {
+                headers: {
+                    "ngrok-skip-browser-warning": "69420"
+                }
+            });
 
             return {
                 isSuccess: true,
