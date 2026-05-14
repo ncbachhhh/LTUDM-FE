@@ -1,14 +1,65 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import UserAPI from "../../../apis/user.api.jsx";
+import { useNotification } from "../../../contexts/notification.context.jsx";
 
-const VerifyOTP = ({ setView }) => {
-  const navigate = useNavigate();
+const VerifyOTP = ({ setView, resetEmail, setResetToken }) => {
+  const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const { api } = useNotification();
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
 
-    alert("Xác thực thành công! Chào mừng bạn quay lại.");
-    navigate('/chat'); 
+    if (!otp || otp.length !== 6) {
+      api.warning({
+        message: "Lỗi",
+        description: "Mã OTP phải có 6 chữ số.",
+        placement: "topRight",
+      });
+      return;
+    }
+
+    setLoading(true);
+    const result = await UserAPI.verifyResetOtp(resetEmail, otp);
+    setLoading(false);
+
+    if (result.isSuccess) {
+      api.success({
+        message: "Thành công",
+        description: result.message,
+        placement: "topRight",
+      });
+      setResetToken(result.data.resetToken);
+      setView('reset-password'); 
+    } else {
+      api.error({
+        message: "Lỗi",
+        description: result.message,
+        placement: "topRight",
+      });
+    }
+  };
+
+  const handleResend = async () => {
+    if (!resetEmail) return;
+    setResending(true);
+    const result = await UserAPI.forgotPassword(resetEmail);
+    setResending(false);
+
+    if (result.isSuccess) {
+      api.success({
+        message: "Đã gửi lại",
+        description: result.message,
+        placement: "topRight",
+      });
+    } else {
+      api.error({
+        message: "Lỗi",
+        description: result.message,
+        placement: "topRight",
+      });
+    }
   };
 
   return (
@@ -28,7 +79,7 @@ const VerifyOTP = ({ setView }) => {
       <div className="mb-6">
         <h3 className="font-bold text-black text-lg mb-1">Xác nhận tài khoản</h3>
         <p className="text-sm text-gray-700 leading-relaxed font-medium">
-          Chúng tôi đã gửi mã qua email. Hãy nhập mã đó để xác nhận tài khoản.
+          Chúng tôi đã gửi mã qua email <b>{resetEmail}</b>. Hãy nhập mã đó để xác nhận tài khoản.
         </p>
       </div>
 
@@ -38,26 +89,32 @@ const VerifyOTP = ({ setView }) => {
         <input 
           required 
           type="text" 
-          placeholder="Nhập mã" 
+          placeholder="Nhập mã 6 chữ số" 
+          maxLength="6"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value)}
           className="w-full p-4 rounded-xl bg-[#C7D2FE] text-blue-900 font-semibold placeholder-blue-500/70 outline-none focus:ring-2 focus:ring-blue-600 text-center tracking-widest text-lg" 
         />
         
         {/* Nút Tiếp tục (Submit) */}
         <button 
           type="submit" 
-          className="w-full p-4 mt-2 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
+          disabled={loading}
+          className="w-full p-4 mt-2 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Tiếp tục
+          {loading ? "Đang kiểm tra..." : "Tiếp tục"}
         </button>
         
       </form>
 
       {/* Nút Gửi lại mã  */}
       <button 
-        onClick={() => alert("Đã gửi lại mã mới!")}
-        className="w-full mt-4 p-4 rounded-xl border border-blue-600 text-black font-bold hover:bg-blue-50 transition-colors"
+        type="button"
+        onClick={handleResend}
+        disabled={resending}
+        className="w-full mt-4 p-4 rounded-xl border border-blue-600 text-black font-bold hover:bg-blue-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        Bạn chưa nhận được mã ?
+        {resending ? "Đang gửi..." : "Bạn chưa nhận được mã ?"}
       </button>
 
     </section>
@@ -65,3 +122,4 @@ const VerifyOTP = ({ setView }) => {
 };
 
 export default VerifyOTP;
+

@@ -9,6 +9,9 @@ const API_URL = {
   GET_PROFILE: `${URL}/users/me`,
   LOGOUT: `${URL}/auth/logout`,
   SEARCH_BY_EMAIL: `${URL}/users/search-by-email`,
+  FORGOT_PASSWORD: `${URL}/auth/forgot-password`,
+  VERIFY_RESET_OTP: `${URL}/auth/verify-reset-otp`,
+  RESET_PASSWORD: `${URL}/auth/reset-password`,
 };
 
 const clearAuthHeader = () => {
@@ -153,6 +156,52 @@ const UserAPI = {
       };
     }
   },
+
+  forgotPassword: async (email) => {
+    try {
+      const response = await axios.post(API_URL.FORGOT_PASSWORD, { email });
+      return {
+        isSuccess: true,
+        message: response.data.message || "Đã gửi mã OTP.",
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        message: error.response?.data?.message || "Lỗi khi gửi yêu cầu quên mật khẩu.",
+      };
+    }
+  },
+
+  verifyResetOtp: async (email, otp) => {
+    try {
+      const response = await axios.post(API_URL.VERIFY_RESET_OTP, { email, otp });
+      return {
+        isSuccess: true,
+        data: response.data.data,
+        message: response.data.message || "Xác thực OTP thành công.",
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        message: error.response?.data?.message || "OTP không hợp lệ hoặc đã hết hạn.",
+      };
+    }
+  },
+
+  resetPassword: async (resetToken, newPassword) => {
+    try {
+      const response = await axios.post(API_URL.RESET_PASSWORD, { resetToken, newPassword });
+      return {
+        isSuccess: true,
+        message: response.data.message || "Đổi mật khẩu thành công.",
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        message: error.response?.data?.message || "Lỗi khi đặt lại mật khẩu.",
+      };
+    }
+  }
 };
 
 export default UserAPI;

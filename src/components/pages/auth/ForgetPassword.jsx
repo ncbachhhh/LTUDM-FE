@@ -1,14 +1,46 @@
-import React from "react";
+import React, { useState } from "react";
+import UserAPI from "../../../apis/user.api.jsx";
+import { useNotification } from "../../../contexts/notification.context.jsx";
 
-const ForgetPassword = ({ setView }) => {
-    const handleResetPassword = (e) => {
+const ForgetPassword = ({ setView, setResetEmail }) => {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { api } = useNotification();
+
+  const handleResetPassword = async (e) => {
     e.preventDefault(); 
     
-    setView('verify-otp');
+    if (!email) {
+      api.warning({
+        message: "Thiếu thông tin",
+        description: "Vui lòng nhập email",
+        placement: "topRight",
+      });
+      return;
+    }
+
+    setLoading(true);
+    const result = await UserAPI.forgotPassword(email);
+    setLoading(false);
+
+    if (result.isSuccess) {
+      api.success({
+        message: "Thành công",
+        description: result.message,
+        placement: "topRight",
+      });
+      setResetEmail(email);
+      setView('verify-otp');
+    } else {
+      api.error({
+        message: "Lỗi",
+        description: result.message,
+        placement: "topRight",
+      });
+    }
   };
 
-
-    return (
+  return (
     <section className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-full max-w-[600px] bg-[#E3E6EB] rounded-[30px] p-8 shadow-2xl">
       
       {/* Nút Back quay lại màn hình Login */}
@@ -31,8 +63,10 @@ const ForgetPassword = ({ setView }) => {
           <label className="block text-sm font-bold text-black mb-1">Email</label>
           <input 
             required 
-            type="tel" 
+            type="email" 
             placeholder="Nhập Email của bạn" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full p-4 rounded-xl bg-[#C7D2FE] text-blue-900 font-semibold placeholder-blue-500/70 outline-none focus:ring-2 focus:ring-blue-600" 
           />
         </div>
@@ -40,9 +74,10 @@ const ForgetPassword = ({ setView }) => {
         {/* Nút Submit */}
         <button 
           type="submit" 
-          className="w-full p-4 mt-2 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
+          disabled={loading}
+          className="w-full p-4 mt-2 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Gửi mã xác nhận
+          {loading ? "Đang gửi..." : "Gửi mã xác nhận"}
         </button>
         
       </form>
