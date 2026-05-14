@@ -21,3 +21,8 @@ body {
     width: 240px !important;
   }
 }
+
+/* Đảm bảo toàn bộ thẻ button và các thành phần mang tính click đều hiển thị con trỏ pointer */
+button, a, [role="button"], select, input[type="submit"], input[type="button"] {
+  cursor: pointer;
+}

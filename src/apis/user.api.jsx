@@ -7,6 +7,8 @@ const API_URL = {
   LOGIN: `${URL}/auth/login`,
   REGISTER: `${URL}/auth/register`,
   GET_PROFILE: `${URL}/users/me`,
+  LOGOUT: `${URL}/auth/logout`,
+  SEARCH_BY_EMAIL: `${URL}/users/search-by-email`,
 };
 
 const clearAuthHeader = () => {
@@ -104,6 +106,50 @@ const UserAPI = {
         data: null,
         message:
           error.response?.data?.message || "Lấy thông tin người dùng thất bại",
+      };
+    }
+  },
+
+  searchByEmail: async (email) => {
+    try {
+      const response = await authorizedAxios().get(`${API_URL.SEARCH_BY_EMAIL}?email=${email}`);
+      return {
+        isSuccess: true,
+        data: response.data.data,
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        message: error.response?.data?.message || "Không tìm thấy người dùng",
+      };
+    }
+  },
+
+  logout: async () => {
+    try {
+      const response = await authorizedAxios().post(API_URL.LOGOUT);
+      
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("userId");
+      clearAuthHeader();
+
+      return {
+        isSuccess: true,
+        message: "Đăng xuất thành công",
+      };
+    } catch (error) {
+      console.error("LOGOUT ERROR:", error);
+
+      // Vẫn clear token ở client dù API báo lỗi
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("userId");
+      clearAuthHeader();
+
+      return {
+        isSuccess: false,
+        message: error.response?.data?.message || "Đăng xuất thất bại",
       };
     }
   },

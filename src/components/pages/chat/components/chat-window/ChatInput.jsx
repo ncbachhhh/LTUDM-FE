@@ -54,13 +54,13 @@ export default function ChatInput({ currentEmoji = "👍", onSendMessage }) {
                 <img src="/icon-anh.svg" className="h-6 w-6" alt="Biểu tượng ảnh" />
             </button>
 
-            <div className="flex-1 rounded-full bg-[#0033FF]/5 px-6 py-4">
+            <div className="flex-1 flex rounded-full bg-[#0033FF]/5 items-center overflow-hidden">
                 <input
                     type="text"
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="w-full bg-transparent text-sm font-medium outline-none"
+                    className="w-full h-full px-6 py-4 bg-transparent text-sm font-medium outline-none"
                     placeholder="Nhập tin nhắn..."
                 />
             </div>
