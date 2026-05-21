@@ -16,8 +16,8 @@ const LoginForm = ({ setView }) => {
 
     const [loading, setLoading] = useState(false);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
+    const handleChange = (event) => {
+        const { name, value } = event.target;
 
         setFormData({
             ...formData,
@@ -25,8 +25,8 @@ const LoginForm = ({ setView }) => {
         });
     };
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
+    const handleLogin = async (event) => {
+        event.preventDefault();
 
         if (!formData.email || !formData.password) {
             api.warning({
@@ -37,14 +37,12 @@ const LoginForm = ({ setView }) => {
             return;
         }
 
-        const data = {
-            email: formData.email,
-            password: formData.password,
-        };
-
         setLoading(true);
 
-        const result = await UserAPI.login(data);
+        const result = await UserAPI.login({
+            email: formData.email,
+            password: formData.password,
+        });
 
         if (result?.isSuccess) {
             await getProfile();
@@ -69,7 +67,7 @@ const LoginForm = ({ setView }) => {
     };
 
     return (
-        <section className="absolute left-1/2 top-[35%] -translate-x-1/2 -translate-y-1/2 z-30 w-full max-w-[600px] bg-[#E3E6EB] rounded-[30px] p-8 shadow-2xl">
+        <section className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[calc(100%-32px)] max-w-[600px] bg-[#E3E6EB] rounded-[30px] p-8 shadow-2xl">
             <button
                 onClick={() => setView("landing")}
                 className="absolute top-6 left-6 text-xl font-black text-black hover:text-gray-600 transition-colors"
@@ -87,7 +85,7 @@ const LoginForm = ({ setView }) => {
                     value={formData.email}
                     onChange={handleChange}
                     type="email"
-                    placeholder="Nhập Email"
+                    placeholder="Nhập email"
                     className="w-full p-4 rounded-xl bg-[#C7D2FE] text-blue-900 font-semibold placeholder-blue-500/70 outline-none focus:ring-2 focus:ring-blue-600"
                 />
 
@@ -113,7 +111,7 @@ const LoginForm = ({ setView }) => {
                 onClick={() => setView("forget")}
                 className="text-center text-sm font-bold text-black mt-4 mb-6 cursor-pointer hover:underline"
             >
-                Quên mật khẩu ?
+                Quên mật khẩu?
             </button>
 
             <button

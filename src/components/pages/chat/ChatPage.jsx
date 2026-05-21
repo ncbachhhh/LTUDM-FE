@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import ChatList from "./components/chat-list/ChatList.jsx";
 import ChatWindow from "./components/chat-window/ChatWindow.jsx";
 import InfoPanel from "./components/info-panel/InfoPanel.jsx";
 import ChatWelcomeScreen from "./components/chat-window/ChatWelcomeScreen.jsx";
 import ConversationAPI from "../../../apis/conversation.api.jsx";
+import WebSocketAPI from "../../../apis/websocket.api.jsx";
 import { useAuth } from "../../../contexts/auth.context.jsx";
 import { useNotification } from "../../../contexts/notification.context.jsx";
 
@@ -25,6 +27,8 @@ const defaultSettings = [
 const ChatPage = () => {
     const { user } = useAuth();
     const { api } = useNotification();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const directUserId = searchParams.get("userId");
 
     const [contacts, setContacts] = useState({
         people: [],
@@ -51,6 +55,81 @@ const ChatPage = () => {
         });
     };
 
+    const getLatestMessage = (conversation) => {
+        return conversation?.latest_message || conversation?.latestMessage || null;
+    };
+
+    const getPreviewText = (conversation) => {
+        const message = getLatestMessage(conversation);
+        if (!message) return "Bấm để mở đoạn chat";
+
+        if (message.type === "IMAGE") return "Đã gửi một ảnh";
+        if (message.type === "FILE") {
+            return message.attachment?.file_name ||
+                message.attachment?.fileName ||
+                "Đã gửi một file";
+        }
+
+        return message.content || "Bấm để mở đoạn chat";
+    };
+
+    const getMessageSenderId = (message) => {
+        return message?.sender_id || message?.senderId;
+    };
+
+    const getMemberName = (member) => {
+        return member?.nickname ||
+            member?.display_name ||
+            member?.displayName ||
+            member?.username ||
+            "Người dùng";
+    };
+
+    const getPreviewSenderName = (conversation) => {
+        const message = getLatestMessage(conversation);
+        const senderId = getMessageSenderId(message);
+
+        if (!senderId) return "";
+        if (String(senderId) === String(currentUserId)) return "Bạn";
+
+        const sender = (conversation.members || []).find(
+            (member) => String(getMemberId(member)) === String(senderId)
+        );
+
+        return getMemberName(sender);
+    };
+
+    const getConversationPreview = (conversation) => {
+        const message = getLatestMessage(conversation);
+        if (!message) return "Bấm để mở đoạn chat";
+
+        const senderName = getPreviewSenderName(conversation);
+        const previewText = getPreviewText(conversation);
+
+        return senderName ? `${senderName}: ${previewText}` : previewText;
+    };
+
+    const getUnreadCount = (conversation) => {
+        return conversation?.unread_count || conversation?.unreadCount || 0;
+    };
+
+    const getConversationSortTime = (conversation) => {
+        const latestMessage = getLatestMessage(conversation);
+        return latestMessage?.created_at ||
+            latestMessage?.createdAt ||
+            conversation?.created_at ||
+            conversation?.createdAt ||
+            "";
+    };
+
+    const sortConversations = (conversations) => {
+        return [...conversations].sort((left, right) => {
+            const leftTime = new Date(getConversationSortTime(left)).getTime() || 0;
+            const rightTime = new Date(getConversationSortTime(right)).getTime() || 0;
+            return rightTime - leftTime;
+        });
+    };
+
     const getMemberId = (member) => {
         return member?.user_id || member?.userId || member?.id;
     };
@@ -74,8 +153,12 @@ const ChatPage = () => {
         );
 
         const name = isGroup
-            ? conversation.title || "Nhóm chat"
-            : otherMember?.display_name ||
+            ? conversation.display_name ||
+            conversation.displayName ||
+            conversation.title ||
+            "Nhóm chat"
+            : otherMember?.nickname ||
+            otherMember?.display_name ||
             otherMember?.displayName ||
             otherMember?.username ||
             "Người dùng";
@@ -95,8 +178,8 @@ const ChatPage = () => {
             name,
             avatar,
 
-            message: "Bấm để mở đoạn chat",
-            time: formatConversationTime(conversation.created_at),
+            message: getConversationPreview(conversation),
+            time: formatConversationTime(getConversationSortTime(conversation)),
             status: isGroup
                 ? "Nhóm chat"
                 : isActive
@@ -105,6 +188,8 @@ const ChatPage = () => {
 
             isActive,
             isGroup,
+            unreadCount: getUnreadCount(conversation),
+            unread: getUnreadCount(conversation) > 0,
 
             members,
             raw: conversation,
@@ -126,7 +211,7 @@ const ChatPage = () => {
         if (result.isSuccess) {
             const conversations = Array.isArray(result.data) ? result.data : [];
 
-            const mappedConversations = conversations.map(mapConversationToContact);
+            const mappedConversations = sortConversations(conversations).map(mapConversationToContact);
 
             setContacts({
                 people: mappedConversations.filter((item) => !item.isGroup),
@@ -155,6 +240,62 @@ const ChatPage = () => {
         fetchConversations();
     }, [currentUserId]);
 
+    useEffect(() => {
+        let subscription = null;
+        let mounted = true;
+
+        const subscribeConversationUpdates = async () => {
+            if (!currentUserId) return;
+
+            try {
+                subscription = await WebSocketAPI.subscribeConversationUpdates((updatedConversation) => {
+                    if (!mounted || !updatedConversation?.id) return;
+
+                    setContacts((previousContacts) => {
+                        const existingConversations = [
+                            ...previousContacts.people.map((item) => item.raw || item),
+                            ...previousContacts.groups.map((item) => item.raw || item),
+                        ];
+
+                        const nextConversations = existingConversations.some(
+                            (conversation) => conversation.id === updatedConversation.id
+                        )
+                            ? existingConversations.map((conversation) =>
+                                conversation.id === updatedConversation.id
+                                    ? updatedConversation
+                                    : conversation
+                            )
+                            : [updatedConversation, ...existingConversations];
+
+                        const mappedConversations = sortConversations(nextConversations)
+                            .map(mapConversationToContact);
+
+                        return {
+                            people: mappedConversations.filter((item) => !item.isGroup),
+                            groups: mappedConversations.filter((item) => item.isGroup),
+                        };
+                    });
+
+                    setCurrentConvo((current) => {
+                        if (!current || current.conversation_id !== updatedConversation.id) {
+                            return current;
+                        }
+                        return mapConversationToContact(updatedConversation);
+                    });
+                });
+            } catch (error) {
+                console.error("SUBSCRIBE CONVERSATION UPDATES ERROR:", error);
+            }
+        };
+
+        subscribeConversationUpdates();
+
+        return () => {
+            mounted = false;
+            subscription?.unsubscribe();
+        };
+    }, [currentUserId]);
+
     const handleSelectContact = (id) => {
         const found =
             contacts.people.find((p) => p.id === id) ||
@@ -165,6 +306,101 @@ const ChatPage = () => {
         }
     };
 
+    const handleConversationUpdated = (updatedConversation) => {
+        if (!updatedConversation?.id) return;
+
+        setContacts((previousContacts) => {
+            const existingConversations = [
+                ...previousContacts.people.map((item) => item.raw || item),
+                ...previousContacts.groups.map((item) => item.raw || item),
+            ];
+
+            const nextConversations = existingConversations.some(
+                (conversation) => conversation.id === updatedConversation.id
+            )
+                ? existingConversations.map((conversation) =>
+                    conversation.id === updatedConversation.id
+                        ? updatedConversation
+                        : conversation
+                )
+                : [updatedConversation, ...existingConversations];
+
+            const mappedConversations = sortConversations(nextConversations)
+                .map(mapConversationToContact);
+
+            return {
+                people: mappedConversations.filter((item) => !item.isGroup),
+                groups: mappedConversations.filter((item) => item.isGroup),
+            };
+        });
+
+        setCurrentConvo((current) => {
+            if (!current || current.conversation_id !== updatedConversation.id) {
+                return current;
+            }
+
+            return mapConversationToContact(updatedConversation);
+        });
+    };
+
+    const findDirectContactByUserId = (userId) => {
+        return contacts.people.find((contact) => {
+            const members = contact.raw?.members || contact.members || [];
+            return members.some(
+                (member) => String(getMemberId(member)) === String(userId)
+            );
+        });
+    };
+
+    const handleOpenDirectConversation = async (userId) => {
+        if (!userId) return;
+
+        const existingContact = findDirectContactByUserId(userId);
+        if (existingContact) {
+            setCurrentConvo(existingContact);
+            return;
+        }
+
+        const result = await ConversationAPI.createConversation({
+            type: "DIRECT",
+            member_ids: [userId],
+        });
+
+        if (!result.isSuccess) {
+            api.error({
+                message: "Không mở được đoạn chat",
+                description: result.message,
+                placement: "topRight",
+            });
+            return;
+        }
+
+        const mappedConversation = mapConversationToContact(result.data);
+        handleConversationUpdated(result.data);
+        setCurrentConvo(mappedConversation);
+    };
+
+    useEffect(() => {
+        if (!directUserId || !currentUserId) return undefined;
+
+        let cancelled = false;
+
+        const timerId = window.setTimeout(async () => {
+            await handleOpenDirectConversation(directUserId);
+
+            if (cancelled) return;
+
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete("userId");
+            setSearchParams(nextParams, { replace: true });
+        }, 0);
+
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timerId);
+        };
+    }, [directUserId, currentUserId]);
+
     return (
         <div className="flex h-full w-full bg-[#E8EEFB] p-6 gap-6 overflow-hidden">
             <div className="chat-list-panel h-full w-[320px] shrink-0">
@@ -173,6 +409,7 @@ const ChatPage = () => {
                     loading={loadingConversations}
                     currentConvoId={currentConvo?.id}
                     onSelect={handleSelectContact}
+                    onOpenDirectConversation={handleOpenDirectConversation}
                 />
             </div>
 
@@ -197,6 +434,7 @@ const ChatPage = () => {
                                 <InfoPanel
                                     data={currentConvo}
                                     onEmojiChange={(newEmoji) => setCurrentEmoji(newEmoji)}
+                                    onConversationUpdated={handleConversationUpdated}
                                 />
                             </div>
                         )}

@@ -7,6 +7,10 @@ const API_URL = {
     CREATE_CONVERSATION: `${URL}/conversations`,
     ADD_MEMBERS: (conversationId) =>
         `${URL}/conversations/${conversationId}/members`,
+    GET_INFO: (conversationId) =>
+        `${URL}/conversations/${conversationId}/info`,
+    UPDATE_NICKNAME: (conversationId, memberId) =>
+        `${URL}/conversations/${conversationId}/members/${memberId}/nickname`,
     DELETE_CONVERSATION: (conversationId) =>
         `${URL}/conversations/${conversationId}`,
 };
@@ -79,6 +83,51 @@ const ConversationAPI = {
                 isSuccess: false,
                 data: null,
                 message: error.response?.data?.message || "Thêm thành viên thất bại",
+            };
+        }
+    },
+
+    getConversationInfo: async (conversationId) => {
+        try {
+            const response = await authorizedAxios().get(
+                API_URL.GET_INFO(conversationId)
+            );
+
+            return {
+                isSuccess: true,
+                data: response.data.data,
+                message: response.data.message,
+            };
+        } catch (error) {
+            console.error("GET CONVERSATION INFO ERROR:", error);
+
+            return {
+                isSuccess: false,
+                data: null,
+                message: error.response?.data?.message || "Không lấy được thông tin hội thoại",
+            };
+        }
+    },
+
+    updateMemberNickname: async (conversationId, memberId, nickname) => {
+        try {
+            const response = await authorizedAxios().patch(
+                API_URL.UPDATE_NICKNAME(conversationId, memberId),
+                { nickname }
+            );
+
+            return {
+                isSuccess: true,
+                data: response.data.data,
+                message: response.data.message,
+            };
+        } catch (error) {
+            console.error("UPDATE NICKNAME ERROR:", error);
+
+            return {
+                isSuccess: false,
+                data: null,
+                message: error.response?.data?.message || "Cập nhật biệt danh thất bại",
             };
         }
     },

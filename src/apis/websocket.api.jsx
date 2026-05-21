@@ -38,7 +38,7 @@ const WebSocketAPI = {
 
         connectPromise = new Promise((resolve, reject) => {
             stompClient.onConnect = () => {
-                console.log("Da ket noi stomp");
+                console.log("Đã kết nối stomp");
                 connectPromise = null;
                 resolve(stompClient);
             };
@@ -77,6 +77,19 @@ const WebSocketAPI = {
         return client.subscribe(topic, (message) => {
             const data = JSON.parse(message.body);
             console.log("RECEIVE:", data);
+            callback(data);
+        });
+    },
+
+    subscribeConversationUpdates: async (callback) => {
+        const client = await WebSocketAPI.connect();
+        const topic = "/user/queue/conversations";
+
+        console.log("SUBSCRIBE:", topic);
+
+        return client.subscribe(topic, (message) => {
+            const data = JSON.parse(message.body);
+            console.log("RECEIVE CONVERSATION UPDATE:", data);
             callback(data);
         });
     },

@@ -1,92 +1,125 @@
+import { useEffect, useState } from "react";
 import StatCard from "./StatCard.jsx";
-import { activeConversation } from "../../../../../helpers/chatData.js";
-import { useState } from 'react';
 import MuteNotificationModal from "./modals/MuteNotificationModal.jsx";
 import SearchChat from "./modals/SearchChat.jsx";
 import FileManager from "./modals/FileManager.jsx";
 import EditNicknameModal from "./modals/EditNickname.jsx";
 import ChangeEmojiModal from "./modals/ChangeEmoji.jsx";
+import ConversationAPI from "../../../../../apis/conversation.api.jsx";
+import { FaBell, FaBellSlash, FaSearch, FaUsers } from "react-icons/fa";
 
-export default function InfoPanel({ onEmojiChange }) {
+const DEFAULT_AVATAR = "/avatar-mac-dinh.jpg";
+
+const normalizeSetting = (value = "") =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const isNicknameSetting = (setting) => {
+  const normalized = normalizeSetting(setting);
+  return normalized.includes("biet danh");
+};
+
+const isEmojiSetting = (setting) => {
+  const normalized = normalizeSetting(setting);
+  return normalized.includes("cam xuc");
+};
+
+export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }) {
+  const [conversationInfo, setConversationInfo] = useState(null);
+  const [loadingInfo, setLoadingInfo] = useState(false);
   const [isMuteModalOpen, setIsMuteModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
+  const [currentView, setCurrentView] = useState("default");
 
-  const [currentView, setCurrentView] = useState('default');
+  const conversationId = data?.conversation_id || data?.conversationId || data?.id;
 
-  //Set trạng thái bật/tắt khi click thông báo
+  const loadConversationInfo = async () => {
+    if (!conversationId) return;
+
+    setLoadingInfo(true);
+    const result = await ConversationAPI.getConversationInfo(conversationId);
+    setLoadingInfo(false);
+
+    if (result.isSuccess) {
+      setConversationInfo(result.data);
+    }
+  };
+
+  const handleNicknameUpdated = (updatedConversation) => {
+    if (updatedConversation) {
+      onConversationUpdated?.(updatedConversation);
+    }
+    loadConversationInfo();
+  };
+
+  useEffect(() => {
+    const timerId = window.setTimeout(loadConversationInfo, 0);
+    return () => window.clearTimeout(timerId);
+  }, [conversationId]);
+
+  const info = conversationInfo || data || {};
+  const displayName = info.display_name || info.displayName || info.title || info.name || "Hội thoại";
+  const avatarUrl = info.avatar_url || info.avatarUrl || info.avatar || DEFAULT_AVATAR;
+  const status = info.status || (info.type === "GROUP" ? "Nhóm chat" : "");
+  const stats = info.stats || data?.stats || [];
+  const settings = info.settings || data?.settings || [];
+  const members = info.members || data?.members || [];
+
   const handleNotificationClick = () => {
     if (isMuted) {
-      // Nếu ĐANG TẮT  
       setIsMuted(false);
     } else {
-      // Nếu ĐANG BẬT 
       setIsMuteModalOpen(true);
     }
-  }; 
+  };
 
-  if (currentView === 'search') {
-    return (
-        <SearchChat onClose={() => setCurrentView('default')} />
-    );
+  if (currentView === "search") {
+    return <SearchChat onClose={() => setCurrentView("default")} />;
   }
 
-   if (currentView === 'file-manager') {
-    return (
-        <FileManager onClose={() => setCurrentView('default')} />
-    );
+  if (currentView === "file-manager") {
+    return <FileManager onClose={() => setCurrentView("default")} />;
   }
 
   return (
-    //Avt+ Tên+ Trạng thái hoạt động
     <div className="flex h-full w-full flex-col gap-3 overflow-y-auto pr-2">
       <div className="flex w-full flex-col items-center bg-white p-3 text-center">
         <div className="relative mb-4">
           <img
-            src={activeConversation.avatar}
+            src={avatarUrl}
             className="h-22 w-22 rounded-full border-4 border-white object-cover"
-            alt={activeConversation.name}
+            alt=""
           />
-          <div className="absolute bottom-1 right-1 h-5 w-5 rounded-full border-[4px] border-white bg-emerald-400" />
+          {info.type !== "GROUP" && (
+            <div className="absolute bottom-1 right-1 h-5 w-5 rounded-full border-[4px] border-white bg-emerald-400" />
+          )}
         </div>
 
-        <h3 className="text-lg font-black">{activeConversation.name}</h3>
-        <p className="text-[12px] font-bold text-gray-400">{activeConversation.status}</p>
+        <h3 className="text-lg font-black">{displayName}</h3>
+        <p className="text-[12px] font-bold text-gray-400">
+          {loadingInfo ? "Đang tải..." : status}
+        </p>
       </div>
 
-      {/*Tạo nhóm+ Tắt thông báo+ Tìm kiếm*/}
-      <div className="flex w-full items-center justify-center bg-white p-3 ">
+      <div className="flex w-full items-center justify-center bg-white p-3">
         <div className="grid w-full grid-cols-3 gap-2">
-          {/*Nút tạo nhóm*/}
-          <ActionBtn label="Tạo nhóm" >
-            <img
-              src="/icon-tao-nhom.svg"
-              alt="Nút tạo nhóm"
-              className="h-4 w-4"
-            />
+          <ActionBtn label="Tạo nhóm">
+            <FaUsers className="h-4 w-4" />
           </ActionBtn>
 
-          {/* Nút thông báo */}
-          <ActionBtn 
-            label={isMuted ? "Bật thông báo" : "Tắt Thông báo"} 
+          <ActionBtn
+            label={isMuted ? "Bật thông báo" : "Tắt thông báo"}
             onClick={handleNotificationClick}
           >
-            <img
-              src={isMuted ? "/icon-chuong-gach.svg" : "/icon-chuong.svg"} 
-              alt={isMuted ? "Đã tắt thông báo" : "Thông báo"}
-              className="h-4 w-4"
-            />
+            {isMuted ? <FaBellSlash className="h-4 w-4" /> : <FaBell className="h-4 w-4" />}
           </ActionBtn>
 
-          {/* Nút tìm kiếm */}
-          <ActionBtn label="Tìm kiếm"
-          onClick={() => setCurrentView('search')}>
-            <img
-              src="/kinh-lup.svg"
-              alt="Tìm kiếm"
-              className="h-4 w-4"
-            />
+          <ActionBtn label="Tìm kiếm" onClick={() => setCurrentView("search")}>
+            <FaSearch className="h-4 w-4" />
           </ActionBtn>
         </div>
       </div>
@@ -94,9 +127,9 @@ export default function InfoPanel({ onEmojiChange }) {
       <div className="w-full bg-white p-4">
         <h4 className="mb-3 text-sm font-black uppercase tracking-wide">Thống kê</h4>
         <div className="grid grid-cols-2 gap-1">
-          {activeConversation.stats.map((stat) => (
+          {stats.map((stat) => (
             <StatCard
-              key={stat.id}
+              key={stat.id || stat.label}
               label={stat.label}
               value={stat.value}
               subValue={stat.subValue}
@@ -106,25 +139,23 @@ export default function InfoPanel({ onEmojiChange }) {
 
         <button
           type="button"
-          onClick={() => setCurrentView('file-manager')}
+          onClick={() => setCurrentView("file-manager")}
           className="mt-2 w-full rounded-2xl bg-[#0033FF]/5 py-2 text-[11px] font-black uppercase tracking-widest text-slate-500"
         >
           Xem tất cả
         </button>
       </div>
 
-          {/*Cài đặt*/}
       <div className="flex w-full flex-col gap-2 bg-white p-4">
         <h4 className="mb-1 text-sm font-black uppercase tracking-wide">Cài đặt</h4>
-        {activeConversation.settings.map((setting) => (
+        {settings.map((setting) => (
           <button
             key={setting}
             type="button"
             onClick={() => {
-              if (setting.includes('biệt danh')) {
-                setIsNicknameModalOpen(true); 
-              }
-              else if (setting.includes('cảm xúc')) {
+              if (isNicknameSetting(setting)) {
+                setIsNicknameModalOpen(true);
+              } else if (isEmojiSetting(setting)) {
                 setIsEmojiModalOpen(true);
               }
             }}
@@ -134,28 +165,25 @@ export default function InfoPanel({ onEmojiChange }) {
           </button>
         ))}
       </div>
-      <MuteNotificationModal 
-        isOpen={isMuteModalOpen} 
-        onClose={() => setIsMuteModalOpen(false)} 
-        onConfirm={(duration) => {
-          console.log("Đã chọn thời gian tắt:", duration);
-          setIsMuted(true);
-        }}
-      />
-      <EditNicknameModal 
-        isOpen={isNicknameModalOpen} 
-        onClose={() => setIsNicknameModalOpen(false)} 
+
+      <MuteNotificationModal
+        isOpen={isMuteModalOpen}
+        onClose={() => setIsMuteModalOpen(false)}
+        onConfirm={() => setIsMuted(true)}
       />
 
-      <ChangeEmojiModal 
+      <EditNicknameModal
+        isOpen={isNicknameModalOpen}
+        onClose={() => setIsNicknameModalOpen(false)}
+        conversationId={conversationId}
+        members={members}
+        onUpdated={handleNicknameUpdated}
+      />
+
+      <ChangeEmojiModal
         isOpen={isEmojiModalOpen}
         onClose={() => setIsEmojiModalOpen(false)}
-        onSelectEmoji={(newEmoji) => {
-        console.log("Đã chọn Emoji mới:", newEmoji);
-        if (onEmojiChange) {
-            onEmojiChange(newEmoji); 
-          }
-        }}
+        onSelectEmoji={(newEmoji) => onEmojiChange?.(newEmoji)}
       />
     </div>
   );
@@ -163,7 +191,6 @@ export default function InfoPanel({ onEmojiChange }) {
 
 function ActionBtn({ label, children, onClick }) {
   return (
-    //Các button tạo nhóm + tắt thông báo+ tìm kiếm
     <button
       type="button"
       onClick={onClick}

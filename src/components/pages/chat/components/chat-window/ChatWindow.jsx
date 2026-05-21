@@ -4,13 +4,14 @@ import MessageList from "./MessageList.jsx";
 import MessageAPI from "../../../../../apis/message.api.jsx";
 import WebSocketAPI from "../../../../../apis/websocket.api.jsx";
 import { useAuth } from "../../../../../contexts/auth.context.jsx";
+import { FaInfoCircle } from "react-icons/fa";
 
 export default function ChatWindow({
-                                       data,
-                                       isInfoOpen,
-                                       setIsInfoOpen,
-                                       currentEmoji,
-                                   }) {
+    data,
+    isInfoOpen,
+    setIsInfoOpen,
+    currentEmoji,
+}) {
     const { user } = useAuth();
 
     const [messages, setMessages] = useState([]);
@@ -54,6 +55,26 @@ export default function ChatWindow({
         return message.created_at || message.createdAt;
     };
 
+    const getMessageTimestamp = (message) => {
+        const createdAt = message?.createdAt || message?.created_at || message?.raw?.created_at || message?.raw?.createdAt;
+        const timestamp = createdAt ? new Date(createdAt).getTime() : 0;
+        return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
+
+    const sortMessagesByCreatedAt = (messageList) => {
+        return [...messageList].sort((left, right) => {
+            const diff = getMessageTimestamp(left) - getMessageTimestamp(right);
+            if (diff !== 0) return diff;
+            return String(left.id).localeCompare(String(right.id));
+        });
+    };
+
+    const handleMessageContentLoad = () => {
+        requestAnimationFrame(() => {
+            scrollToBottom("auto");
+        });
+    };
+
     const mapMessageToUI = (message) => {
         const senderId = getSenderId(message);
         const createdAt = getCreatedAt(message);
@@ -62,7 +83,9 @@ export default function ChatWindow({
             id: getMessageId(message),
             text: message.content,
             type: message.type || "TEXT",
+            attachment: message.attachment || null,
             isOwn: String(senderId) === String(currentUserId),
+            createdAt,
             time: createdAt
                 ? new Date(createdAt).toLocaleTimeString("vi-VN", {
                     hour: "2-digit",
@@ -88,7 +111,7 @@ export default function ChatWindow({
             if (!mounted) return;
 
             if (result.isSuccess) {
-                const mappedMessages = result.data.map(mapMessageToUI);
+                const mappedMessages = sortMessagesByCreatedAt(result.data.map(mapMessageToUI));
                 setMessages(mappedMessages);
 
                 MessageAPI.markConversationRead(conversationId);
@@ -130,7 +153,10 @@ export default function ChatWindow({
 
                             if (existed) return prevMessages;
 
-                            return [...prevMessages, mapMessageToUI(newMessage)];
+                            return sortMessagesByCreatedAt([
+                                ...prevMessages,
+                                mapMessageToUI(newMessage),
+                            ]);
                         });
                     }
                 );
@@ -181,6 +207,21 @@ export default function ChatWindow({
         return result;
     };
 
+    const handleSendFileMessage = async (file, type) => {
+        if (!conversationId) {
+            return {
+                isSuccess: false,
+                message: "Chưa chọn hội thoại",
+            };
+        }
+
+        return MessageAPI.sendFileMessage({
+            conversationId,
+            file,
+            type,
+        });
+    };
+
     return (
         <div className="flex h-full flex-1 flex-col overflow-hidden rounded-[10px] border border-gray-100 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b p-5">
@@ -201,8 +242,8 @@ export default function ChatWindow({
                                     : "text-red-400"
                             }`}
                         >
-              {socketStatus}
-            </span>
+                            {socketStatus}
+                        </span>
                     </div>
                 </div>
 
@@ -212,11 +253,7 @@ export default function ChatWindow({
                         isInfoOpen ? "bg-blue-50" : "hover:bg-gray-100"
                     }`}
                 >
-                    <img
-                        src="/thong-tin-hoi-thoai.svg"
-                        className="h-6 w-6"
-                        alt="Thông tin hội thoại"
-                    />
+                    <FaInfoCircle className="h-6 w-6 text-slate-700" />
                 </button>
             </div>
 
@@ -233,7 +270,11 @@ export default function ChatWindow({
                         {errorMessage}
                     </div>
                 ) : (
-                    <MessageList messages={messages} avatar={data.avatar} />
+                    <MessageList
+                        messages={messages}
+                        avatar={data.avatar}
+                        onContentLoad={handleMessageContentLoad}
+                    />
                 )}
             </div>
 
@@ -241,6 +282,7 @@ export default function ChatWindow({
                 <ChatInput
                     currentEmoji={currentEmoji}
                     onSendMessage={handleSendMessage}
+                    onSendFileMessage={handleSendFileMessage}
                 />
             </div>
         </div>

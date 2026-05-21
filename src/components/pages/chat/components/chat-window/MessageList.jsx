@@ -1,7 +1,7 @@
 import React from "react";
 import MessageItem from "./MessageItem";
 
-export default function MessageList({ messages, avatar }) {
+export default function MessageList({ messages, avatar, onContentLoad }) {
   if (!messages || messages.length === 0) {
     return (
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
@@ -19,11 +19,13 @@ export default function MessageList({ messages, avatar }) {
                 key={msg.id}
                 text={msg.text}
                 type={msg.type}
+                attachment={msg.attachment}
                 isOwn={msg.isOwn}
                 avatar={avatar}
                 time={msg.time}
                 isReply={msg.isReply}
                 replyText={msg.replyText}
+                onContentLoad={onContentLoad}
             />
         ))}
       </div>

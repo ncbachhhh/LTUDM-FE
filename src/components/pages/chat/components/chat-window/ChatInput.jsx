@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { FaPaperPlane, FaRegFileAlt, FaRegImage } from "react-icons/fa";
 import { useNotification } from "../../../../../contexts/notification.context.jsx";
 
-export default function ChatInput({ currentEmoji = "👍", onSendMessage }) {
+export default function ChatInput({ currentEmoji = "👍", onSendMessage, onSendFileMessage }) {
     const { api } = useNotification();
 
     const [text, setText] = useState("");
     const [loading, setLoading] = useState(false);
+    const imageInputRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     const hasText = text.trim() !== "";
 
@@ -15,9 +18,7 @@ export default function ChatInput({ currentEmoji = "👍", onSendMessage }) {
         if (!content || loading) return;
 
         setLoading(true);
-
         const result = await onSendMessage(content);
-
         setLoading(false);
 
         if (result?.isSuccess) {
@@ -31,9 +32,44 @@ export default function ChatInput({ currentEmoji = "👍", onSendMessage }) {
         }
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === "Enter" && hasText) {
-            e.preventDefault();
+    const handleSendEmoji = async () => {
+        if (hasText || loading || !currentEmoji) return;
+
+        setLoading(true);
+        const result = await onSendMessage(currentEmoji);
+        setLoading(false);
+
+        if (!result?.isSuccess) {
+            api.error({
+                message: "Gửi biểu tượng cảm xúc thất bại",
+                description: result?.message || "Có lỗi xảy ra khi gửi tin nhắn",
+                placement: "topRight",
+            });
+        }
+    };
+
+    const handleFileChange = async (event, type) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+
+        if (!file || loading) return;
+
+        setLoading(true);
+        const result = await onSendFileMessage?.(file, type);
+        setLoading(false);
+
+        if (!result?.isSuccess) {
+            api.error({
+                message: type === "IMAGE" ? "Gửi ảnh thất bại" : "Gửi file thất bại",
+                description: result?.message || "Có lỗi xảy ra khi gửi tệp",
+                placement: "topRight",
+            });
+        }
+    };
+
+    const handleKeyDown = (event) => {
+        if (event.key === "Enter" && hasText) {
+            event.preventDefault();
             handleSendMessage();
         }
     };
@@ -42,23 +78,39 @@ export default function ChatInput({ currentEmoji = "👍", onSendMessage }) {
         <div className="flex items-center gap-5 border-t border-gray-50 px-6 py-0">
             <button
                 type="button"
+                onClick={() => fileInputRef.current?.click()}
                 className="text-2xl text-gray-400 transition-colors hover:text-gray-600"
             >
-                <img src="/icon-micro.svg" className="h-6 w-6" alt="Biểu tượng micro" />
+                <FaRegFileAlt className="h-6 w-6" />
             </button>
 
             <button
                 type="button"
+                onClick={() => imageInputRef.current?.click()}
                 className="text-2xl text-gray-400 transition-colors hover:text-gray-600"
             >
-                <img src="/icon-anh.svg" className="h-6 w-6" alt="Biểu tượng ảnh" />
+                <FaRegImage className="h-6 w-6" />
             </button>
+
+            <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(event) => handleFileChange(event, "FILE")}
+            />
+            <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={(event) => handleFileChange(event, "IMAGE")}
+            />
 
             <div className="flex-1 flex rounded-full bg-[#0033FF]/5 items-center overflow-hidden">
                 <input
                     type="text"
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={(event) => setText(event.target.value)}
                     onKeyDown={handleKeyDown}
                     className="w-full h-full px-6 py-4 bg-transparent text-sm font-medium outline-none"
                     placeholder="Nhập tin nhắn..."
@@ -68,9 +120,9 @@ export default function ChatInput({ currentEmoji = "👍", onSendMessage }) {
             <button
                 type="button"
                 disabled={loading}
-                onClick={hasText ? handleSendMessage : undefined}
+                onClick={hasText ? handleSendMessage : handleSendEmoji}
                 className={`text-3xl text-blue-600 transition-transform ${
-                    hasText ? "hover:scale-110 cursor-pointer" : "cursor-default"
+                    hasText || currentEmoji ? "hover:scale-110 cursor-pointer" : "cursor-default"
                 } disabled:opacity-60 disabled:cursor-not-allowed`}
             >
                 {!hasText ? (
@@ -78,9 +130,7 @@ export default function ChatInput({ currentEmoji = "👍", onSendMessage }) {
                 ) : loading ? (
                     <span className="text-sm font-bold text-blue-600">...</span>
                 ) : (
-                    <svg viewBox="0 0 24 24" className="w-7 h-7 fill-[#0084FF]">
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                    </svg>
+                    <FaPaperPlane className="h-7 w-7 text-[#0084FF]" />
                 )}
             </button>
         </div>

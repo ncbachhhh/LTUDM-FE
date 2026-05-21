@@ -3,7 +3,7 @@ import ChatActionMenu from './ChatActionMenu';
 import { LuPin } from "react-icons/lu";
 
 export default function ContactItem({ 
-  id, name, message, time, avatar, isActive, isUnread, isPinned, onAction, onClick 
+  id, name, message, time, avatar, isActive, isUnread, unreadCount = 0, isPinned, onAction, onClick
 }) {
   return (
     <div 
@@ -39,7 +39,9 @@ export default function ContactItem({
       </div>
 
       {isUnread && (
-        <div className="ml-auto mr-1 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.5)] group-hover:hidden"></div>
+        <div className="ml-auto mr-1 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[11px] font-bold text-white shadow-[0_0_8px_rgba(37,99,235,0.5)] group-hover:hidden">
+          {unreadCount > 99 ? "99+" : unreadCount || ""}
+        </div>
       )}
     </div>
   );

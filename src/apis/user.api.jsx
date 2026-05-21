@@ -8,6 +8,7 @@ const API_URL = {
   REGISTER: `${URL}/auth/register`,
   GET_PROFILE: `${URL}/users/me`,
   LOGOUT: `${URL}/auth/logout`,
+  SEARCH_USERS: `${URL}/users/search`,
   SEARCH_BY_EMAIL: `${URL}/users/search-by-email`,
   FORGOT_PASSWORD: `${URL}/auth/forgot-password`,
   VERIFY_RESET_OTP: `${URL}/auth/verify-reset-otp`,
@@ -43,7 +44,6 @@ const UserAPI = {
 
   login: async (data) => {
     try {
-      // Xóa token/header cũ trước khi login
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("userId");
@@ -128,10 +128,28 @@ const UserAPI = {
     }
   },
 
+  searchUsersForFriendRequest: async (keyword) => {
+    try {
+      const response = await authorizedAxios().get(API_URL.SEARCH_USERS, {
+        params: { keyword },
+      });
+      return {
+        isSuccess: true,
+        data: response.data.data || [],
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        data: [],
+        message: error.response?.data?.message || "Không tìm thấy người dùng",
+      };
+    }
+  },
+
   logout: async () => {
     try {
-      const response = await authorizedAxios().post(API_URL.LOGOUT);
-      
+      await authorizedAxios().post(API_URL.LOGOUT);
+
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("userId");
@@ -144,7 +162,6 @@ const UserAPI = {
     } catch (error) {
       console.error("LOGOUT ERROR:", error);
 
-      // Vẫn clear token ở client dù API báo lỗi
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("userId");
@@ -201,7 +218,7 @@ const UserAPI = {
         message: error.response?.data?.message || "Lỗi khi đặt lại mật khẩu.",
       };
     }
-  }
+  },
 };
 
 export default UserAPI;

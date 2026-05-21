@@ -8,8 +8,8 @@ const VerifyOTP = ({ setView, resetEmail, setResetToken }) => {
   const [resending, setResending] = useState(false);
   const { api } = useNotification();
 
-  const handleVerify = async (e) => {
-    e.preventDefault();
+  const handleVerify = async (event) => {
+    event.preventDefault();
 
     if (!otp || otp.length !== 6) {
       api.warning({
@@ -31,7 +31,7 @@ const VerifyOTP = ({ setView, resetEmail, setResetToken }) => {
         placement: "topRight",
       });
       setResetToken(result.data.resetToken);
-      setView('reset-password'); 
+      setView("reset-password");
     } else {
       api.error({
         message: "Lỗi",
@@ -64,18 +64,16 @@ const VerifyOTP = ({ setView, resetEmail, setResetToken }) => {
 
   return (
     <section className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-full max-w-[600px] bg-[#E3E6EB] rounded-[30px] p-8 shadow-2xl">
-      
       <div className="flex items-center mb-6 relative">
-        <button 
-          onClick={() => setView('forget')} 
+        <button
+          onClick={() => setView("forget")}
           className="absolute left-0 text-xl font-black text-black hover:text-gray-600 transition-colors"
         >
           &lt;
         </button>
         <h2 className="text-2xl font-bold text-black w-full text-center">Quên mật khẩu</h2>
       </div>
-      
-      {/* NỘI DUNG: Tiêu đề phụ và Mô tả */}
+
       <div className="mb-6">
         <h3 className="font-bold text-black text-lg mb-1">Xác nhận tài khoản</h3>
         <p className="text-sm text-gray-700 leading-relaxed font-medium">
@@ -83,43 +81,36 @@ const VerifyOTP = ({ setView, resetEmail, setResetToken }) => {
         </p>
       </div>
 
-      {/* FORM NHẬP MÃ */}
       <form onSubmit={handleVerify} className="flex flex-col gap-4">
-        
-        <input 
-          required 
-          type="text" 
-          placeholder="Nhập mã 6 chữ số" 
+        <input
+          required
+          type="text"
+          placeholder="Nhập mã 6 chữ số"
           maxLength="6"
           value={otp}
-          onChange={(e) => setOtp(e.target.value)}
-          className="w-full p-4 rounded-xl bg-[#C7D2FE] text-blue-900 font-semibold placeholder-blue-500/70 outline-none focus:ring-2 focus:ring-blue-600 text-center tracking-widest text-lg" 
+          onChange={(event) => setOtp(event.target.value)}
+          className="w-full p-4 rounded-xl bg-[#C7D2FE] text-blue-900 font-semibold placeholder-blue-500/70 outline-none focus:ring-2 focus:ring-blue-600 text-center tracking-widest text-lg"
         />
-        
-        {/* Nút Tiếp tục (Submit) */}
-        <button 
-          type="submit" 
+
+        <button
+          type="submit"
           disabled={loading}
           className="w-full p-4 mt-2 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? "Đang kiểm tra..." : "Tiếp tục"}
         </button>
-        
       </form>
 
-      {/* Nút Gửi lại mã  */}
-      <button 
+      <button
         type="button"
         onClick={handleResend}
         disabled={resending}
         className="w-full mt-4 p-4 rounded-xl border border-blue-600 text-black font-bold hover:bg-blue-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {resending ? "Đang gửi..." : "Bạn chưa nhận được mã ?"}
+        {resending ? "Đang gửi..." : "Bạn chưa nhận được mã?"}
       </button>
-
     </section>
   );
 };
 
 export default VerifyOTP;
-

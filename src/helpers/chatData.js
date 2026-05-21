@@ -70,5 +70,5 @@ export const activeConversation = {
     { id: "files", label: "File", value: "36" },
     { id: "images", label: "Hình ảnh", value: "36" },
   ],
-  settings: ["Chỉnh sửa biệt danh", "Thay đổi biếu tượng cảm xúc"],
+  settings: ["Chỉnh sửa biệt danh", "Thay đổi biểu tượng cảm xúc"],
 };
