@@ -64,6 +64,43 @@ const ContactsPage = () => {
   }, [loadFriendshipData]);
 
   useEffect(() => {
+    const handlePresenceUpdate = (event) => {
+      const userId = event.detail?.user_id || event.detail?.userId;
+      const online = Boolean(event.detail?.is_online ?? event.detail?.online);
+      if (!userId) return;
+
+      setFriends((previousFriends) =>
+        previousFriends.map((friend) =>
+          String(friend.id) === String(userId)
+            ? {
+                ...friend,
+                is_online: online,
+                isOnline: online,
+                online,
+              }
+            : friend
+        )
+      );
+
+      setFriendSearchResults((previousResults) =>
+        previousResults?.map((friend) =>
+          String(friend.id) === String(userId)
+            ? {
+                ...friend,
+                is_online: online,
+                isOnline: online,
+                online,
+              }
+            : friend
+        ) || previousResults
+      );
+    };
+
+    window.addEventListener("presence:update", handlePresenceUpdate);
+    return () => window.removeEventListener("presence:update", handlePresenceUpdate);
+  }, []);
+
+  useEffect(() => {
     if (activeTab !== "FRIENDS") return undefined;
 
     const query = globalSearch.trim();

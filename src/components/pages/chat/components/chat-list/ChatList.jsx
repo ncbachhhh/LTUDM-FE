@@ -160,6 +160,7 @@ export default function ChatList({
                 time={user.time}
                 avatar={user.avatar}
                 isUnread={user.unread}
+                isOnline={user.isActive}
                 unreadCount={user.unreadCount}
                 isPinned={user.pinned}
                 isActive={selectedChat === user.id}

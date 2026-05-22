@@ -145,6 +145,14 @@ const ChatPage = () => {
 
     const mapConversationToContact = (conversation) => {
         const isGroup = conversation.type === "GROUP";
+        const blockedByCurrentUser =
+            Boolean(conversation.blocked_by_current_user || conversation.blockedByCurrentUser);
+        const currentUserBlocked =
+            Boolean(conversation.current_user_blocked || conversation.currentUserBlocked);
+        const friendshipStatus =
+            conversation.friendship_status || conversation.friendshipStatus || "NONE";
+        const friendshipDirection =
+            conversation.friendship_direction || conversation.friendshipDirection || "NONE";
 
         const members = conversation.members || [];
 
@@ -188,6 +196,11 @@ const ChatPage = () => {
 
             isActive,
             isGroup,
+            friendshipStatus,
+            friendshipDirection,
+            blockedByCurrentUser,
+            currentUserBlocked,
+            canMessage: isGroup || (!blockedByCurrentUser && !currentUserBlocked && friendshipStatus === "ACCEPTED"),
             unreadCount: getUnreadCount(conversation),
             unread: getUnreadCount(conversation) > 0,
 
@@ -214,7 +227,7 @@ const ChatPage = () => {
             const mappedConversations = sortConversations(conversations).map(mapConversationToContact);
 
             setContacts({
-                people: mappedConversations.filter((item) => !item.isGroup),
+                people: mappedConversations.filter((item) => !item.isGroup && !item.blockedByCurrentUser),
                 groups: mappedConversations.filter((item) => item.isGroup),
             });
 
@@ -271,7 +284,7 @@ const ChatPage = () => {
                             .map(mapConversationToContact);
 
                         return {
-                            people: mappedConversations.filter((item) => !item.isGroup),
+                            people: mappedConversations.filter((item) => !item.isGroup && !item.blockedByCurrentUser),
                             groups: mappedConversations.filter((item) => item.isGroup),
                         };
                     });
@@ -329,7 +342,7 @@ const ChatPage = () => {
                 .map(mapConversationToContact);
 
             return {
-                people: mappedConversations.filter((item) => !item.isGroup),
+                people: mappedConversations.filter((item) => !item.isGroup && !item.blockedByCurrentUser),
                 groups: mappedConversations.filter((item) => item.isGroup),
             };
         });
@@ -342,6 +355,64 @@ const ChatPage = () => {
             return mapConversationToContact(updatedConversation);
         });
     };
+
+    const applyPresenceToContact = (contact, userId, online) => {
+        if (contact.isGroup) return contact;
+
+        const nextMembers = (contact.members || []).map((member) => {
+            if (String(getMemberId(member)) !== String(userId)) return member;
+            return {
+                ...member,
+                is_online: online,
+                online,
+                isActive: online,
+                is_active: online,
+            };
+        });
+
+        const otherMember = nextMembers.find(
+            (member) => String(getMemberId(member)) !== String(currentUserId)
+        );
+        const isOtherOnline = getMemberOnlineStatus(otherMember);
+
+        return {
+            ...contact,
+            members: nextMembers,
+            raw: contact.raw
+                ? {
+                    ...contact.raw,
+                    members: nextMembers,
+                  }
+                : contact.raw,
+            isActive: isOtherOnline,
+            status: isOtherOnline ? "Trực tuyến" : "Ngoại tuyến",
+        };
+    };
+
+    useEffect(() => {
+        const handlePresenceUpdate = (event) => {
+            const userId = event.detail?.user_id || event.detail?.userId;
+            const online = Boolean(event.detail?.is_online ?? event.detail?.online);
+            if (!userId || String(userId) === String(currentUserId)) return;
+
+            setContacts((previousContacts) => ({
+                people: previousContacts.people.map((contact) =>
+                    applyPresenceToContact(contact, userId, online)
+                ),
+                groups: previousContacts.groups.map((contact) =>
+                    applyPresenceToContact(contact, userId, online)
+                ),
+            }));
+
+            setCurrentConvo((current) => {
+                if (!current) return current;
+                return applyPresenceToContact(current, userId, online);
+            });
+        };
+
+        window.addEventListener("presence:update", handlePresenceUpdate);
+        return () => window.removeEventListener("presence:update", handlePresenceUpdate);
+    }, [currentUserId]);
 
     const findDirectContactByUserId = (userId) => {
         return contacts.people.find((contact) => {

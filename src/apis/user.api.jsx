@@ -1,5 +1,6 @@
 import axios from "axios";
 import authorizedAxios from "../helpers/authorizedAxios.js";
+import { clearStoredAuth, getRefreshToken, storeTokens } from "../helpers/token.helper.js";
 
 const URL = `${import.meta.env.VITE_HOST_URL}/api/v1`;
 
@@ -15,14 +16,10 @@ const API_URL = {
   RESET_PASSWORD: `${URL}/auth/reset-password`,
 };
 
-const clearAuthHeader = () => {
-  delete axios.defaults.headers.common["Authorization"];
-};
-
 const UserAPI = {
   register: async (data) => {
     try {
-      clearAuthHeader();
+      clearStoredAuth();
 
       const response = await axios.post(API_URL.REGISTER, data);
 
@@ -44,11 +41,7 @@ const UserAPI = {
 
   login: async (data) => {
     try {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("userId");
-
-      clearAuthHeader();
+      clearStoredAuth();
 
       const response = await axios.post(API_URL.LOGIN, data);
 
@@ -65,13 +58,7 @@ const UserAPI = {
         };
       }
 
-      localStorage.setItem("accessToken", accessToken);
-
-      if (refreshToken) {
-        localStorage.setItem("refreshToken", refreshToken);
-      }
-
-      axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+      storeTokens({ accessToken, refreshToken });
 
       return {
         isSuccess: true,
@@ -148,12 +135,10 @@ const UserAPI = {
 
   logout: async () => {
     try {
-      await authorizedAxios().post(API_URL.LOGOUT);
+      const refreshToken = getRefreshToken();
+      await authorizedAxios().post(API_URL.LOGOUT, { token: refreshToken });
 
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("userId");
-      clearAuthHeader();
+      clearStoredAuth();
 
       return {
         isSuccess: true,
@@ -162,10 +147,7 @@ const UserAPI = {
     } catch (error) {
       console.error("LOGOUT ERROR:", error);
 
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("userId");
-      clearAuthHeader();
+      clearStoredAuth();
 
       return {
         isSuccess: false,

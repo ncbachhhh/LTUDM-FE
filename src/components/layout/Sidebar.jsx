@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import UserAPI from "../../apis/user.api.jsx";
+import { useAuth } from "../../contexts/auth.context.jsx";
 
 export default function SideNav() {
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
   // Xử lý click ra ngoài để đóng menu
   useEffect(() => {
@@ -120,7 +121,7 @@ export default function SideNav() {
             <div className="absolute left-[50px] bottom-0 z-[999] w-[180px] rounded-[16px] bg-white p-2 shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-gray-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
               <button
                 onClick={async () => {
-                  await UserAPI.logout();
+                  await logout();
                   setShowSettings(false);
                   navigate("/"); // Điều hướng về trang chủ sau khi đăng xuất
                 }}

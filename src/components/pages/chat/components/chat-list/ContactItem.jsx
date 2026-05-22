@@ -3,7 +3,7 @@ import ChatActionMenu from './ChatActionMenu';
 import { LuPin } from "react-icons/lu";
 
 export default function ContactItem({ 
-  id, name, message, time, avatar, isActive, isUnread, unreadCount = 0, isPinned, onAction, onClick
+  id, name, message, time, avatar, isActive, isOnline = false, isUnread, unreadCount = 0, isPinned, onAction, onClick
 }) {
   return (
     <div 
@@ -14,6 +14,9 @@ export default function ContactItem({
     >
       <div className="relative h-[52px] w-[52px] shrink-0">
         <img src={avatar} alt="Avatar" className="h-full w-full rounded-full object-cover" />
+        {isOnline && (
+          <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-green-500" />
+        )}
       </div>
 
       <div className="flex flex-1 flex-col overflow-hidden leading-tight">

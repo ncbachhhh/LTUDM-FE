@@ -32,6 +32,14 @@ export default function ChatWindow({
         data?.conversationId ||
         data?.id;
 
+    const canMessage = data?.canMessage !== false &&
+        !data?.blockedByCurrentUser &&
+        !data?.currentUserBlocked;
+
+    const disabledMessage = "Hiện không thể liên lạc";
+    const displayStatus = canMessage ? (data?.status || socketStatus) : disabledMessage;
+    const isOnline = displayStatus === "Trực tuyến";
+
     const scrollToBottom = (behavior = "auto") => {
         const container = messageContainerRef.current;
 
@@ -237,12 +245,14 @@ export default function ChatWindow({
 
                         <span
                             className={`text-xs font-semibold ${
-                                socketStatus === "Đã kết nối"
+                                isOnline
                                     ? "text-green-500"
-                                    : "text-red-400"
+                                    : canMessage
+                                        ? "text-gray-400"
+                                        : "text-red-400"
                             }`}
                         >
-                            {socketStatus}
+                            {displayStatus}
                         </span>
                     </div>
                 </div>
@@ -278,13 +288,19 @@ export default function ChatWindow({
                 )}
             </div>
 
-            <div className="p-4 pb-6 bg-white">
-                <ChatInput
-                    currentEmoji={currentEmoji}
-                    onSendMessage={handleSendMessage}
-                    onSendFileMessage={handleSendFileMessage}
-                />
-            </div>
+            {canMessage ? (
+                <div className="p-4 pb-6 bg-white">
+                    <ChatInput
+                        currentEmoji={currentEmoji}
+                        onSendMessage={handleSendMessage}
+                        onSendFileMessage={handleSendFileMessage}
+                    />
+                </div>
+            ) : (
+                <div className="border-t bg-white px-6 py-5 text-center text-sm font-bold text-gray-500">
+                    {disabledMessage}
+                </div>
+            )}
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import axios from "axios";
 import UserAPI from "../apis/user.api.jsx";
+import WebSocketAPI from "../apis/websocket.api.jsx";
+import { clearStoredAuth, getValidAccessToken, hasStoredAuth } from "../helpers/token.helper.js";
 
 const AuthContext = createContext(null);
 
@@ -12,15 +13,12 @@ export function AuthProvider({ children }) {
 
   const getProfile = async () => {
     try {
-      const accessToken = localStorage.getItem("accessToken");
-
-      if (!accessToken) {
+      if (!hasStoredAuth()) {
         setUser(null);
         return null;
       }
 
-      axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
-
+      await getValidAccessToken();
       const response = await UserAPI.getProfile();
 
       if (response.isSuccess) {
@@ -40,17 +38,15 @@ export function AuthProvider({ children }) {
       return null;
     } catch (error) {
       console.error("Error fetching profile:", error);
+      clearStoredAuth();
       setUser(null);
       return null;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userId");
-
-    delete axios.defaults.headers.common["Authorization"];
+  const logout = async () => {
+    await WebSocketAPI.disconnect();
+    await UserAPI.logout();
 
     setUser(null);
   };

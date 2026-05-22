@@ -16,6 +16,8 @@ const getDisplayName = (user) =>
 
 const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || DEFAULT_AVATAR;
 
+const isOnline = (user) => Boolean(user?.is_online || user?.isOnline || user?.online);
+
 const FriendList = ({ friends = [], searchQuery = "", loading = false, onOpenProfile }) => {
   const navigate = useNavigate();
   const [sortType, setSortType] = useState("AZ");
@@ -135,11 +137,16 @@ const FriendList = ({ friends = [], searchQuery = "", loading = false, onOpenPro
                         className="flex items-center justify-between hover:bg-[#F3F6FD] p-3 rounded-xl transition-all group cursor-pointer"
                       >
                         <div className="flex items-center gap-4 min-w-0">
-                          <img
-                            src={getAvatarUrl(friend)}
-                            className="w-[52px] h-[52px] rounded-full object-cover border-2 border-white shadow-sm"
-                            alt=""
-                          />
+                          <div className="relative h-[52px] w-[52px] shrink-0">
+                            <img
+                              src={getAvatarUrl(friend)}
+                              className="h-full w-full rounded-full object-cover border-2 border-white shadow-sm"
+                              alt=""
+                            />
+                            {isOnline(friend) && (
+                              <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-green-500" />
+                            )}
+                          </div>
                           <div className="min-w-0">
                             <p className="font-bold text-gray-800 truncate">
                               {getDisplayName(friend)}

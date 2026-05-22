@@ -1,63 +1,84 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client/dist/sockjs.min.js";
+import { clearStoredAuth, getValidAccessToken } from "../helpers/token.helper.js";
 
 const WS_URL = `${import.meta.env.VITE_HOST_URL}/api/v1/ws`;
+const RECONNECT_DELAY_MS = 5000;
 
 let stompClient = null;
 let connectPromise = null;
 
+const parseMessage = (message) => JSON.parse(message.body);
+
+const isAuthErrorFrame = (frame) => {
+    const message = `${frame.headers?.message || ""} ${frame.body || ""}`.toLowerCase();
+    return (
+        message.includes("token") ||
+        message.includes("unauthenticated") ||
+        message.includes("unauthorized")
+    );
+};
+
+const resetClient = () => {
+    stompClient = null;
+    connectPromise = null;
+};
+
+const createClient = () => {
+    const client = new Client({
+        webSocketFactory: () => new SockJS(WS_URL),
+        reconnectDelay: RECONNECT_DELAY_MS,
+        debug: (message) => console.log("[STOMP]", message),
+        beforeConnect: async () => {
+            const accessToken = await getValidAccessToken();
+            client.connectHeaders = {
+                Authorization: `Bearer ${accessToken}`,
+            };
+        },
+    });
+
+    return client;
+};
+
 const WebSocketAPI = {
-    connect: () => {
-        const accessToken = localStorage.getItem("accessToken");
-
-        if (!accessToken) {
-            return Promise.reject("Không có accessToken trong localStorage");
-        }
-
+    connect: async () => {
         if (stompClient?.connected) {
-            return Promise.resolve(stompClient);
+            return stompClient;
         }
 
         if (connectPromise) {
             return connectPromise;
         }
 
-        stompClient = new Client({
-            webSocketFactory: () => new SockJS(WS_URL),
-
-            connectHeaders: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-
-            reconnectDelay: 5000,
-
-            debug: (message) => {
-                console.log("[STOMP]", message);
-            },
-        });
+        stompClient = createClient();
 
         connectPromise = new Promise((resolve, reject) => {
             stompClient.onConnect = () => {
-                console.log("Đã kết nối stomp");
+                console.log("Connected STOMP");
                 connectPromise = null;
                 resolve(stompClient);
             };
 
             stompClient.onStompError = (frame) => {
-                console.error("Lỗi:", frame.headers?.message);
-                console.error("Chi tiết:", frame.body);
-                connectPromise = null;
+                console.error("STOMP error:", frame.headers?.message);
+                console.error("STOMP detail:", frame.body);
+
+                if (isAuthErrorFrame(frame)) {
+                    clearStoredAuth();
+                }
+
+                resetClient();
                 reject(frame);
             };
 
             stompClient.onWebSocketError = (error) => {
-                console.error("lỗi wbe socket:", error);
-                connectPromise = null;
+                console.error("WebSocket error:", error);
+                resetClient();
                 reject(error);
             };
 
             stompClient.onWebSocketClose = (event) => {
-                console.warn("Đóng websocket:", event);
+                console.warn("WebSocket closed:", event);
                 connectPromise = null;
             };
         });
@@ -69,13 +90,12 @@ const WebSocketAPI = {
 
     subscribeConversation: async (conversationId, callback) => {
         const client = await WebSocketAPI.connect();
-
         const topic = `/topic/conversation/${conversationId}`;
 
         console.log("SUBSCRIBE:", topic);
 
         return client.subscribe(topic, (message) => {
-            const data = JSON.parse(message.body);
+            const data = parseMessage(message);
             console.log("RECEIVE:", data);
             callback(data);
         });
@@ -88,8 +108,21 @@ const WebSocketAPI = {
         console.log("SUBSCRIBE:", topic);
 
         return client.subscribe(topic, (message) => {
-            const data = JSON.parse(message.body);
+            const data = parseMessage(message);
             console.log("RECEIVE CONVERSATION UPDATE:", data);
+            callback(data);
+        });
+    },
+
+    subscribePresence: async (callback) => {
+        const client = await WebSocketAPI.connect();
+        const topic = "/topic/presence";
+
+        console.log("SUBSCRIBE:", topic);
+
+        return client.subscribe(topic, (message) => {
+            const data = parseMessage(message);
+            console.log("RECEIVE PRESENCE:", data);
             callback(data);
         });
     },
@@ -101,7 +134,7 @@ const WebSocketAPI = {
             if (!client.connected) {
                 return {
                     isSuccess: false,
-                    message: "Socket chưa kết nối",
+                    message: "Socket chua ket noi",
                 };
             }
 
@@ -119,29 +152,29 @@ const WebSocketAPI = {
 
             return {
                 isSuccess: true,
-                message: "Đã gửi",
+                message: "Da gui",
             };
         } catch (error) {
-            console.error("Gửi lỗi:", error);
+            console.error("Send message error:", error);
 
             return {
                 isSuccess: false,
-                message: "Không kết nối được socket",
+                message: "Khong ket noi duoc socket",
             };
         }
     },
 
     disconnect: async () => {
-        if (stompClient) {
-            await stompClient.deactivate();
-            stompClient = null;
-            connectPromise = null;
+        if (!stompClient) {
+            return;
         }
+
+        const client = stompClient;
+        resetClient();
+        await client.deactivate();
     },
 
-    isConnected: () => {
-        return !!stompClient?.connected;
-    },
+    isConnected: () => !!stompClient?.connected,
 };
 
 export default WebSocketAPI;

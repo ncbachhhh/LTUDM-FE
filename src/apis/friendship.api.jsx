@@ -9,6 +9,8 @@ const API_URL = {
   WITHDRAW: (id) => `${URL}/friendships/requests/${id}`,
   DELETE: (id) => `${URL}/friendships/${id}`,
   BLOCK: (userId) => `${URL}/friendships/blocks/${userId}`,
+  BLOCKS: `${URL}/friendships/blocks`,
+  UNBLOCK: (userId) => `${URL}/friendships/blocks/${userId}`,
   INCOMING: `${URL}/friendships/requests/incoming`,
   OUTGOING: `${URL}/friendships/requests/outgoing`,
   FRIENDSHIPS: `${URL}/friendships`,
@@ -89,6 +91,31 @@ const FriendshipAPI = {
       return {
         isSuccess: false,
         message: getErrorMessage(error, "Chặn người dùng thất bại"),
+      };
+    }
+  },
+
+  unblockUser: async (userId) => {
+    try {
+      const response = await authorizedAxios().delete(API_URL.UNBLOCK(userId));
+      return { isSuccess: true, data: unwrapData(response) };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        message: getErrorMessage(error, "Bo chan nguoi dung that bai"),
+      };
+    }
+  },
+
+  getBlockedUsers: async () => {
+    try {
+      const response = await authorizedAxios().get(API_URL.BLOCKS);
+      return { isSuccess: true, data: unwrapData(response) || [] };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        data: [],
+        message: getErrorMessage(error, "Lay danh sach nguoi da chan that bai"),
       };
     }
   },

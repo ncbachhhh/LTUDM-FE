@@ -151,6 +151,23 @@ export default function UserProfileModule({
     onFriendshipChanged?.();
   };
 
+  const handleUnblockUser = async () => {
+    setLoadingAction("UNBLOCK");
+    setError("");
+    const response = await FriendshipAPI.unblockUser(user.id);
+    setLoadingAction("");
+
+    if (!response.isSuccess) {
+      setError(response.message);
+      return;
+    }
+
+    setFriendshipStatus("NONE");
+    setFriendshipDirection("NONE");
+    setFriendshipId(null);
+    onFriendshipChanged?.();
+  };
+
   const renderPrimaryActions = () => {
     if (friendshipStatus === "ACCEPTED") {
       return (
@@ -206,10 +223,11 @@ export default function UserProfileModule({
     if (friendshipStatus === "BLOCKED") {
       return (
         <button
-          disabled
-          className="w-full rounded-[20px] bg-gray-100 text-gray-500 py-4 text-[18px] font-bold cursor-not-allowed"
+          disabled={Boolean(loadingAction)}
+          onClick={handleUnblockUser}
+          className="w-full rounded-[20px] bg-[#F3F4F1] py-4 text-[18px] font-bold text-black hover:bg-gray-200 transition-all disabled:opacity-50"
         >
-          Đã chặn người dùng
+          {loadingAction === "UNBLOCK" ? "Đang bỏ chặn..." : "Bỏ chặn"}
         </button>
       );
     }
