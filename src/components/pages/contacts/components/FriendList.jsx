@@ -8,13 +8,12 @@ import {
   Search,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const DEFAULT_AVATAR = "/anh-avata.svg";
+import { PROFILE_AVATAR } from "../../../../constants/asset.constants.js";
 
 const getDisplayName = (user) =>
   user?.display_name || user?.displayName || user?.username || user?.email || "Người dùng";
 
-const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || DEFAULT_AVATAR;
+const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || PROFILE_AVATAR;
 
 const isOnline = (user) => Boolean(user?.is_online || user?.isOnline || user?.online);
 

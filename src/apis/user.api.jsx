@@ -1,41 +1,32 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config/app.config.js";
 import authorizedAxios from "../helpers/authorizedAxios.js";
 import { clearStoredAuth, getRefreshToken, storeTokens } from "../helpers/token.helper.js";
-
-const URL = `${import.meta.env.VITE_HOST_URL}/api/v1`;
+import { failureResponse, successResponse } from "../utils/api-response.util.js";
 
 const API_URL = {
-  LOGIN: `${URL}/auth/login`,
-  REGISTER: `${URL}/auth/register`,
-  GET_PROFILE: `${URL}/users/me`,
-  LOGOUT: `${URL}/auth/logout`,
-  SEARCH_USERS: `${URL}/users/search`,
-  SEARCH_BY_EMAIL: `${URL}/users/search-by-email`,
-  FORGOT_PASSWORD: `${URL}/auth/forgot-password`,
-  VERIFY_RESET_OTP: `${URL}/auth/verify-reset-otp`,
-  RESET_PASSWORD: `${URL}/auth/reset-password`,
+  LOGIN: `${API_BASE_URL}/auth/login`,
+  REGISTER: `${API_BASE_URL}/auth/register`,
+  GET_PROFILE: `${API_BASE_URL}/users/me`,
+  LOGOUT: `${API_BASE_URL}/auth/logout`,
+  SEARCH_USERS: `${API_BASE_URL}/users/search`,
+  SEARCH_BY_EMAIL: `${API_BASE_URL}/users/search-by-email`,
+  FORGOT_PASSWORD: `${API_BASE_URL}/auth/forgot-password`,
+  VERIFY_RESET_OTP: `${API_BASE_URL}/auth/verify-reset-otp`,
+  RESET_PASSWORD: `${API_BASE_URL}/auth/reset-password`,
 };
+
+const anonymousClient = axios.create();
 
 const UserAPI = {
   register: async (data) => {
     try {
       clearStoredAuth();
-
-      const response = await axios.post(API_URL.REGISTER, data);
-
-      return {
-        isSuccess: true,
-        data: response.data.data,
-        message: response.data.message,
-      };
+      const response = await anonymousClient.post(API_URL.REGISTER, data);
+      return successResponse(response);
     } catch (error) {
       console.error("REGISTER ERROR:", error);
-
-      return {
-        isSuccess: false,
-        data: null,
-        message: error.response?.data?.message || "Đăng ký thất bại",
-      };
+      return failureResponse(error, "Đăng ký thất bại");
     }
   },
 
@@ -43,10 +34,7 @@ const UserAPI = {
     try {
       clearStoredAuth();
 
-      const response = await axios.post(API_URL.LOGIN, data);
-
-      console.log("LOGIN RESPONSE:", response.data);
-
+      const response = await anonymousClient.post(API_URL.LOGIN, data);
       const accessToken = response.data?.data?.accessToken;
       const refreshToken = response.data?.data?.refreshToken;
 
@@ -61,57 +49,33 @@ const UserAPI = {
       storeTokens({ accessToken, refreshToken });
 
       return {
-        isSuccess: true,
-        data: response.data.data,
+        ...successResponse(response),
         message: response.data.message || "Đăng nhập thành công",
       };
     } catch (error) {
       console.error("LOGIN ERROR:", error);
-
-      return {
-        isSuccess: false,
-        data: null,
-        message:
-          error.response?.data?.message ||
-          error.message ||
-          "Đăng nhập thất bại",
-      };
+      return failureResponse(error, "Đăng nhập thất bại");
     }
   },
 
   getProfile: async () => {
     try {
       const response = await authorizedAxios().get(API_URL.GET_PROFILE);
-
-      return {
-        isSuccess: true,
-        data: response.data.data,
-        message: response.data.message,
-      };
+      return successResponse(response);
     } catch (error) {
       console.error("GET PROFILE ERROR:", error);
-
-      return {
-        isSuccess: false,
-        data: null,
-        message:
-          error.response?.data?.message || "Lấy thông tin người dùng thất bại",
-      };
+      return failureResponse(error, "Lấy thông tin người dùng thất bại");
     }
   },
 
   searchByEmail: async (email) => {
     try {
-      const response = await authorizedAxios().get(`${API_URL.SEARCH_BY_EMAIL}?email=${email}`);
-      return {
-        isSuccess: true,
-        data: response.data.data,
-      };
+      const response = await authorizedAxios().get(API_URL.SEARCH_BY_EMAIL, {
+        params: { email },
+      });
+      return successResponse(response);
     } catch (error) {
-      return {
-        isSuccess: false,
-        message: error.response?.data?.message || "Không tìm thấy người dùng",
-      };
+      return failureResponse(error, "Không tìm thấy người dùng");
     }
   },
 
@@ -120,16 +84,9 @@ const UserAPI = {
       const response = await authorizedAxios().get(API_URL.SEARCH_USERS, {
         params: { keyword },
       });
-      return {
-        isSuccess: true,
-        data: response.data.data || [],
-      };
+      return successResponse(response, []);
     } catch (error) {
-      return {
-        isSuccess: false,
-        data: [],
-        message: error.response?.data?.message || "Không tìm thấy người dùng",
-      };
+      return failureResponse(error, "Không tìm thấy người dùng", []);
     }
   },
 
@@ -137,7 +94,6 @@ const UserAPI = {
     try {
       const refreshToken = getRefreshToken();
       await authorizedAxios().post(API_URL.LOGOUT, { token: refreshToken });
-
       clearStoredAuth();
 
       return {
@@ -146,59 +102,47 @@ const UserAPI = {
       };
     } catch (error) {
       console.error("LOGOUT ERROR:", error);
-
       clearStoredAuth();
-
-      return {
-        isSuccess: false,
-        message: error.response?.data?.message || "Đăng xuất thất bại",
-      };
+      return failureResponse(error, "Đăng xuất thất bại");
     }
   },
 
   forgotPassword: async (email) => {
     try {
-      const response = await axios.post(API_URL.FORGOT_PASSWORD, { email });
+      const response = await anonymousClient.post(API_URL.FORGOT_PASSWORD, { email });
       return {
-        isSuccess: true,
+        ...successResponse(response),
         message: response.data.message || "Đã gửi mã OTP.",
       };
     } catch (error) {
-      return {
-        isSuccess: false,
-        message: error.response?.data?.message || "Lỗi khi gửi yêu cầu quên mật khẩu.",
-      };
+      return failureResponse(error, "Lỗi khi gửi yêu cầu quên mật khẩu.");
     }
   },
 
   verifyResetOtp: async (email, otp) => {
     try {
-      const response = await axios.post(API_URL.VERIFY_RESET_OTP, { email, otp });
+      const response = await anonymousClient.post(API_URL.VERIFY_RESET_OTP, { email, otp });
       return {
-        isSuccess: true,
-        data: response.data.data,
+        ...successResponse(response),
         message: response.data.message || "Xác thực OTP thành công.",
       };
     } catch (error) {
-      return {
-        isSuccess: false,
-        message: error.response?.data?.message || "OTP không hợp lệ hoặc đã hết hạn.",
-      };
+      return failureResponse(error, "OTP không hợp lệ hoặc đã hết hạn.");
     }
   },
 
   resetPassword: async (resetToken, newPassword) => {
     try {
-      const response = await axios.post(API_URL.RESET_PASSWORD, { resetToken, newPassword });
+      const response = await anonymousClient.post(API_URL.RESET_PASSWORD, {
+        resetToken,
+        newPassword,
+      });
       return {
-        isSuccess: true,
+        ...successResponse(response),
         message: response.data.message || "Đổi mật khẩu thành công.",
       };
     } catch (error) {
-      return {
-        isSuccess: false,
-        message: error.response?.data?.message || "Lỗi khi đặt lại mật khẩu.",
-      };
+      return failureResponse(error, "Lỗi khi đặt lại mật khẩu.");
     }
   },
 };

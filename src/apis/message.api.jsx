@@ -1,92 +1,64 @@
+import { API_BASE_URL } from "../config/app.config.js";
+import { MESSAGE_TYPE } from "../constants/chat.constants.js";
 import authorizedAxios from "../helpers/authorizedAxios.js";
-
-const URL = `${import.meta.env.VITE_HOST_URL}/api/v1`;
+import { failureResponse, successResponse } from "../utils/api-response.util.js";
 
 const API_URL = {
-    SEND_MESSAGE: `${URL}/messages`,
-    GET_MESSAGES_BY_CONVERSATION: (conversationId, page, size) =>
-        `${URL}/messages/conversation/${conversationId}/paged?page=${page}&size=${size}`,
-
-    MARK_CONVERSATION_READ: (conversationId) =>
-        `${URL}/messages/conversation/${conversationId}/read-all`,
+  SEND_MESSAGE: `${API_BASE_URL}/messages`,
+  GET_MESSAGES_BY_CONVERSATION: (conversationId, page, size) =>
+    `${API_BASE_URL}/messages/conversation/${conversationId}/paged?page=${page}&size=${size}`,
+  MARK_CONVERSATION_READ: (conversationId) =>
+    `${API_BASE_URL}/messages/conversation/${conversationId}/read-all`,
 };
 
 const MessageAPI = {
-    sendFileMessage: async ({ conversationId, file, type }) => {
-        try {
-            const formData = new FormData();
-            formData.append(
-                "message",
-                new Blob(
-                    [JSON.stringify({ conversation_id: conversationId, type })],
-                    { type: "application/json" }
-                )
-            );
-            formData.append("file", file);
+  sendFileMessage: async ({ conversationId, file, type }) => {
+    try {
+      const formData = new FormData();
+      formData.append(
+        "message",
+        new Blob([JSON.stringify({ conversation_id: conversationId, type })], {
+          type: "application/json",
+        })
+      );
+      formData.append("file", file);
 
-            const response = await authorizedAxios().post(API_URL.SEND_MESSAGE, formData);
+      const response = await authorizedAxios().post(API_URL.SEND_MESSAGE, formData);
+      return successResponse(response);
+    } catch (error) {
+      console.error("SEND FILE MESSAGE ERROR:", error);
+      return failureResponse(error, "Gửi tệp thất bại");
+    }
+  },
 
-            return {
-                isSuccess: true,
-                data: response.data.data,
-                message: response.data.message,
-            };
-        } catch (error) {
-            console.error("SEND FILE MESSAGE ERROR:", error);
+  getMessagesByConversation: async (conversationId, page = 0, size = 50) => {
+    try {
+      const response = await authorizedAxios().get(
+        API_URL.GET_MESSAGES_BY_CONVERSATION(conversationId, page, size)
+      );
+      return {
+        ...successResponse(response, []),
+        data: response.data.data?.content || [],
+      };
+    } catch (error) {
+      console.error("GET MESSAGES ERROR:", error);
+      return failureResponse(error, "Không lấy được tin nhắn", []);
+    }
+  },
 
-            return {
-                isSuccess: false,
-                data: null,
-                message: error.response?.data?.message || "Gửi tệp thất bại",
-            };
-        }
-    },
-
-    getMessagesByConversation: async (conversationId, page = 0, size = 50) => {
-        try {
-            const response = await authorizedAxios().get(
-                API_URL.GET_MESSAGES_BY_CONVERSATION(conversationId, page, size)
-            );
-
-            return {
-                isSuccess: true,
-                data: response.data.data?.content || [],
-                message: response.data.message,
-            };
-        } catch (error) {
-            console.error("GET MESSAGES ERROR:", error);
-
-            return {
-                isSuccess: false,
-                data: [],
-                message: error.response?.data?.message || "Không lấy được tin nhắn",
-            };
-        }
-    },
-
-    markConversationRead: async (conversationId) => {
-        try {
-            const response = await authorizedAxios().put(
-                API_URL.MARK_CONVERSATION_READ(conversationId),
-                {}
-            );
-
-            return {
-                isSuccess: true,
-                data: response.data.data,
-                message: response.data.message,
-            };
-        } catch (error) {
-            console.error("MARK CONVERSATION READ ERROR:", error);
-
-            return {
-                isSuccess: false,
-                data: null,
-                message:
-                    error.response?.data?.message || "Không đánh dấu đã đọc được",
-            };
-        }
-    },
+  markConversationRead: async (conversationId) => {
+    try {
+      const response = await authorizedAxios().put(
+        API_URL.MARK_CONVERSATION_READ(conversationId),
+        {}
+      );
+      return successResponse(response);
+    } catch (error) {
+      console.error("MARK CONVERSATION READ ERROR:", error);
+      return failureResponse(error, "Không đánh dấu đã đọc được");
+    }
+  },
 };
 
+export { MESSAGE_TYPE };
 export default MessageAPI;

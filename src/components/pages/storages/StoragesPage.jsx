@@ -3,16 +3,16 @@ import ChatListStorages from "./ChatListStorages";
 import ChatWindowStorages from "./ChatWindowStorages";
 import FriendshipAPI from "../../../apis/friendship.api.jsx";
 import ConversationAPI from "../../../apis/conversation.api.jsx";
+import { PROFILE_AVATAR } from "../../../constants/asset.constants.js";
 import { useAuth } from "../../../contexts/auth.context.jsx";
-
-const DEFAULT_AVATAR = "/anh-avata.svg";
+import { getCurrentUserId } from "../../../utils/identity.util.js";
 
 const getMemberId = (member) => member?.user_id || member?.userId || member?.id;
 
 const getDisplayName = (user) =>
   user?.display_name || user?.displayName || user?.username || user?.email || "Người dùng";
 
-const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || DEFAULT_AVATAR;
+const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || PROFILE_AVATAR;
 
 const getBlockedUserFromResponse = (friendship) => {
   const user = friendship?.user || {};
@@ -35,11 +35,7 @@ const StoragesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const currentUserId =
-    user?.id ||
-    user?.user_id ||
-    user?.userId ||
-    localStorage.getItem("userId");
+  const currentUserId = getCurrentUserId(user);
 
   const loadBlockedConversations = useCallback(async () => {
     setLoading(true);
@@ -89,7 +85,8 @@ const StoragesPage = () => {
   }, [currentUserId]);
 
   useEffect(() => {
-    loadBlockedConversations();
+    const timerId = window.setTimeout(loadBlockedConversations, 0);
+    return () => window.clearTimeout(timerId);
   }, [loadBlockedConversations]);
 
   return (

@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import ModalWrapper from "../../../../../common/ModalWrapper";
 import ConversationAPI from "../../../../../../apis/conversation.api.jsx";
-
-const DEFAULT_AVATAR = "/avatar-mac-dinh.jpg";
+import { DEFAULT_AVATAR } from "../../../../../../constants/asset.constants.js";
 
 const getMemberId = (member) => member?.user_id || member?.userId || member?.id;
 

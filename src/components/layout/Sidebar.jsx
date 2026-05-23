@@ -1,6 +1,73 @@
-import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { FaArchive, FaCog, FaRegUserCircle, FaSignOutAlt } from "react-icons/fa";
+import { BsChatDotsFill } from "react-icons/bs";
+import { useLocation, useNavigate } from "react-router-dom";
+import { DEFAULT_AVATAR } from "../../constants/asset.constants.js";
 import { useAuth } from "../../contexts/auth.context.jsx";
+
+const navItems = [
+  {
+    path: "/chat",
+    label: "Tin nhắn",
+    Icon: BsChatDotsFill,
+  },
+  {
+    path: "/contacts",
+    label: "Danh bạ",
+    Icon: FaRegUserCircle,
+  },
+  {
+    path: "/storages",
+    label: "Lưu trữ",
+    Icon: FaArchive,
+  },
+];
+
+const NAV_ITEM_HEIGHT = 64;
+const NAV_ITEM_GAP = 16;
+
+function ActiveCurve() {
+  return (
+    <>
+      <div className="absolute -top-[25px] right-0 h-[25px] w-[25px] bg-[#E8EEFB] transition-colors duration-300 before:absolute before:inset-0 before:rounded-br-[25px] before:bg-[#0029FF] before:content-['']" />
+      <div className="absolute -bottom-[25px] right-0 h-[25px] w-[25px] bg-[#E8EEFB] transition-colors duration-300 before:absolute before:inset-0 before:rounded-tr-[25px] before:bg-[#0029FF] before:content-['']" />
+    </>
+  );
+}
+
+function ActiveIndicator({ index }) {
+  return (
+    <div
+      className="absolute right-0 top-0 h-16 w-[calc(100%-12px)] rounded-l-[29px] bg-[#E8EEFB] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+      style={{
+        transform: `translateY(${index * (NAV_ITEM_HEIGHT + NAV_ITEM_GAP)}px)`,
+      }}
+    >
+      <ActiveCurve />
+    </div>
+  );
+}
+
+function NavItem({ item, active, onClick }) {
+  const Icon = item.Icon;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={item.label}
+      className={`relative z-10 flex h-16 w-[calc(100%-12px)] items-center justify-center rounded-l-[29px] transition-opacity duration-300 ease-out ${
+        active ? "opacity-100" : "opacity-80 hover:opacity-100"
+      }`}
+    >
+      <Icon
+        className={`relative z-10 h-7 w-7 transition-[color,transform] duration-300 ease-out ${
+          active ? "text-[#0029FF]" : "text-white"
+        }`}
+      />
+    </button>
+  );
+}
 
 export default function SideNav() {
   const [showSettings, setShowSettings] = useState(false);
@@ -8,98 +75,35 @@ export default function SideNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
+  const activeIndex = Math.max(
+    navItems.findIndex((item) => item.path === location.pathname),
+    0
+  );
 
-  // Xử lý click ra ngoài để đóng menu
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (settingsRef.current && !settingsRef.current.contains(event.target)) {
         setShowSettings(false);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
     <div className="relative flex h-full w-20 shrink-0 flex-col items-end bg-[#0029FF] py-6">
-      <div className="flex w-full flex-1 flex-col items-end gap-4">
-        <div
-          onClick={() => navigate("/chat")}
-          className={`relative mt-2 flex w-[calc(100%-12px)] items-center justify-center cursor-pointer ${
-            location.pathname === "/chat"
-              ? "rounded-l-[29px] bg-[#E8EEFB] py-4"
-              : "py-2 w-full opacity-80"
-          }`}
-        >
-          {location.pathname === "/chat" && (
-            <>
-              <div
-                className="absolute -top-[25px] right-0 h-[25px] w-[25px] bg-[#E8EEFB]
-              before:absolute before:inset-0 before:rounded-br-[25px] before:bg-[#0029FF] before:content-['']"
-              />
-              <div
-                className="absolute -bottom-[25px] right-0 h-[25px] w-[25px] bg-[#E8EEFB]
-              before:absolute before:inset-0 before:rounded-tr-[25px] before:bg-[#0029FF] before:content-['']"
-              />
-            </>
-          )}
+      <div className="relative flex w-full flex-1 flex-col items-end gap-4">
+        <ActiveIndicator index={activeIndex} />
 
-          <div className="relative z-10 flex h-6 w-8 items-center justify-center">
-            <img
-              src="/tin-nhan-xanh.svg"
-              alt="Tin nhắn"
-              className="h-7 w-7 object-contain"
-            />
-          </div>
-        </div>
-
-        {/* NÚT DANH BẠ */}
-        <div
-          onClick={() => navigate("/contacts")}
-          className={`relative mt-4 flex w-[calc(100%-12px)] items-center justify-center cursor-pointer ${
-            location.pathname === "/contacts"
-              ? "rounded-l-[29px] bg-[#E8EEFB] py-4"
-              : "py-2 w-full opacity-80"
-          }`}
-        >
-          {location.pathname === "/contacts" && (
-            <>
-              <div className="absolute -top-[25px] right-0 h-[25px] w-[25px] bg-[#E8EEFB] before:absolute before:inset-0 before:rounded-br-[25px] before:bg-[#0029FF] before:content-['']" />
-              <div className="absolute -bottom-[25px] right-0 h-[25px] w-[25px] bg-[#E8EEFB] before:absolute before:inset-0 before:rounded-tr-[25px] before:bg-[#0029FF] before:content-['']" />
-            </>
-          )}
-          <div className="relative z-10 flex h-7 w-7 items-center justify-center">
-            <img
-              src="/danh-ba.svg"
-              alt="Danh bạ"
-              className="h-7 w-7 object-contain"
-            />
-          </div>
-        </div>
-
-        {/* NÚT LƯU TRỮ */}
-        <div
-          onClick={() => navigate("/storages")}
-          className={`relative mt-4 flex w-[calc(100%-12px)] items-center justify-center cursor-pointer ${
-            location.pathname === "/storages"
-              ? "rounded-l-[29px] bg-[#E8EEFB] py-4"
-              : "py-2 w-full opacity-80"
-          }`}
-        >
-          {location.pathname === "/storages" && (
-            <>
-              <div className="absolute -top-[25px] right-0 h-[25px] w-[25px] bg-[#E8EEFB] before:absolute before:inset-0 before:rounded-br-[25px] before:bg-[#0029FF] before:content-['']" />
-              <div className="absolute -bottom-[25px] right-0 h-[25px] w-[25px] bg-[#E8EEFB] before:absolute before:inset-0 before:rounded-tr-[25px] before:bg-[#0029FF] before:content-['']" />
-            </>
-          )}
-          <div className="relative z-10 flex h-7 w-7 items-center justify-center">
-            <img
-              src="/luu-tru.svg"
-              alt="Lưu trữ"
-              className="h-7 w-7 object-contain"
-            />
-          </div>
-        </div>
+        {navItems.map((item) => (
+          <NavItem
+            key={item.path}
+            item={item}
+            active={location.pathname === item.path}
+            onClick={() => navigate(item.path)}
+          />
+        ))}
       </div>
 
       <div className="mt-8 flex w-full flex-col items-center gap-10">
@@ -107,39 +111,24 @@ export default function SideNav() {
           <button
             type="button"
             onClick={() => setShowSettings(!showSettings)}
-            className="flex h-8 w-8 items-center justify-center opacity-80 hover:opacity-100 transition-all active:scale-95"
+            className="flex h-8 w-8 items-center justify-center text-white opacity-80 transition-all hover:opacity-100 active:scale-95"
+            aria-label="Cài đặt"
           >
-            <img
-              src="/cai-dat.svg"
-              alt="Cài đặt"
-              className="h-7 w-7 object-contain"
-            />
+            <FaCog className="h-7 w-7" />
           </button>
 
-          {/* Popup Menu Đăng xuất */}
           {showSettings && (
-            <div className="absolute left-[50px] bottom-0 z-[999] w-[180px] rounded-[16px] bg-white p-2 shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-gray-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="absolute bottom-0 left-[50px] z-[999] w-[180px] rounded-[16px] border border-gray-50 bg-white p-2 shadow-[0_10px_40px_rgba(0,0,0,0.15)] animate-in fade-in slide-in-from-bottom-2 duration-200">
               <button
+                type="button"
                 onClick={async () => {
                   await logout();
                   setShowSettings(false);
-                  navigate("/"); // Điều hướng về trang chủ sau khi đăng xuất
+                  navigate("/");
                 }}
-                className="flex w-full items-center gap-3 rounded-[12px] px-4 py-3 text-left text-[15px] font-bold text-red-500 hover:bg-red-50 transition-colors"
+                className="flex w-full items-center gap-3 rounded-[12px] px-4 py-3 text-left text-[15px] font-bold text-red-500 transition-colors hover:bg-red-50"
               >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.5"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
+                <FaSignOutAlt className="h-5 w-5" />
                 Đăng xuất
               </button>
             </div>
@@ -147,7 +136,7 @@ export default function SideNav() {
         </div>
 
         <img
-          src="/avatar-mac-dinh.jpg"
+          src={DEFAULT_AVATAR}
           alt="Avatar người dùng"
           className="h-10 w-10 rounded-full border-2 border-white/20 object-cover shadow-md"
         />

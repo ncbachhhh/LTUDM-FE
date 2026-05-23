@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import StatCard from "./StatCard.jsx";
 import MuteNotificationModal from "./modals/MuteNotificationModal.jsx";
 import SearchChat from "./modals/SearchChat.jsx";
@@ -6,9 +6,8 @@ import FileManager from "./modals/FileManager.jsx";
 import EditNicknameModal from "./modals/EditNickname.jsx";
 import ChangeEmojiModal from "./modals/ChangeEmoji.jsx";
 import ConversationAPI from "../../../../../apis/conversation.api.jsx";
+import { DEFAULT_AVATAR } from "../../../../../constants/asset.constants.js";
 import { FaBell, FaBellSlash, FaSearch, FaUsers } from "react-icons/fa";
-
-const DEFAULT_AVATAR = "/avatar-mac-dinh.jpg";
 
 const normalizeSetting = (value = "") =>
   value
@@ -37,7 +36,7 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
 
   const conversationId = data?.conversation_id || data?.conversationId || data?.id;
 
-  const loadConversationInfo = async () => {
+  const loadConversationInfo = useCallback(async () => {
     if (!conversationId) return;
 
     setLoadingInfo(true);
@@ -47,7 +46,7 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
     if (result.isSuccess) {
       setConversationInfo(result.data);
     }
-  };
+  }, [conversationId]);
 
   const handleNicknameUpdated = (updatedConversation) => {
     if (updatedConversation) {
@@ -59,7 +58,7 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
   useEffect(() => {
     const timerId = window.setTimeout(loadConversationInfo, 0);
     return () => window.clearTimeout(timerId);
-  }, [conversationId]);
+  }, [loadConversationInfo]);
 
   const info = conversationInfo || data || {};
   const displayName = info.display_name || info.displayName || info.title || info.name || "Hội thoại";

@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, UserPlus, UserRound, Users } from "lucide-react";
+import { UserPlus, UserRound, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import ConversationAPI from "../../../apis/conversation.api.jsx";
 import FriendshipAPI from "../../../apis/friendship.api.jsx";
-import { contacts } from "../../../helpers/chatData";
+import SearchInput from "../../common/SearchInput.jsx";
+import { useAuth } from "../../../contexts/auth.context.jsx";
+import { mapConversationsToContacts } from "../../../features/chat/conversation.mapper.js";
+import { useFriendSearch } from "../../../features/friendship/useFriendSearch.js";
+import { getCurrentUserId } from "../../../utils/identity.util.js";
+import UserProfileModule from "../chat/components/chat-list/UserProfileModule.jsx";
 import FriendList from "./components/FriendList";
 import FriendRequestModule from "./components/FriendRequestModule";
 import GroupList from "./components/GroupList";
-import UserProfileModule from "../chat/components/chat-list/UserProfileModule.jsx";
 
 const getFriendFromResponse = (friendship) => {
   if (!friendship?.user) return friendship;
@@ -24,39 +29,60 @@ const getFriendFromResponse = (friendship) => {
 
 const ContactsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentUserId = getCurrentUserId(user);
   const [activeTab, setActiveTab] = useState("REQUESTS");
   const [friends, setFriends] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
-  const [friendSearchResults, setFriendSearchResults] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [searchingFriends, setSearchingFriends] = useState(false);
   const [error, setError] = useState("");
-  const [globalSearch, setGlobalSearch] = useState("");
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const {
+    keyword: globalSearch,
+    setKeyword: setGlobalSearch,
+    results: friendSearchResults,
+    loading: searchingFriends,
+    message: searchMessage,
+    setResults: setFriendSearchResults,
+  } = useFriendSearch({
+    searchFn: FriendshipAPI.searchFriends,
+    enabled: activeTab === "FRIENDS",
+    auto: true,
+    emptyMessage: "Không tìm thấy bạn bè phù hợp.",
+  });
 
   const loadFriendshipData = useCallback(async () => {
     setLoading(true);
     setError("");
 
-    const [friendsRes, incomingRes, outgoingRes] = await Promise.all([
+    const [friendsRes, incomingRes, outgoingRes, conversationsRes] = await Promise.all([
       FriendshipAPI.getFriends(),
       FriendshipAPI.getIncomingRequests(),
       FriendshipAPI.getOutgoingRequests(),
+      ConversationAPI.getMyConversations(),
     ]);
 
     setFriends((friendsRes.data || []).map(getFriendFromResponse).filter(Boolean));
-    setFriendSearchResults(null);
+    setGroups(
+      conversationsRes.isSuccess
+        ? mapConversationsToContacts(conversationsRes.data || [], currentUserId).groups
+        : []
+    );
     setIncomingRequests(incomingRes.data || []);
     setOutgoingRequests(outgoingRes.data || []);
 
-    const failed = [friendsRes, incomingRes, outgoingRes].find((res) => !res.isSuccess);
+    const failed = [friendsRes, incomingRes, outgoingRes, conversationsRes].find(
+      (res) => !res.isSuccess
+    );
+
     if (failed) {
       setError(failed.message || "Không thể tải dữ liệu bạn bè");
     }
 
     setLoading(false);
-  }, []);
+  }, [currentUserId]);
 
   useEffect(() => {
     const timerId = window.setTimeout(loadFriendshipData, 0);
@@ -69,8 +95,7 @@ const ContactsPage = () => {
       const online = Boolean(event.detail?.is_online ?? event.detail?.online);
       if (!userId) return;
 
-      setFriends((previousFriends) =>
-        previousFriends.map((friend) =>
+      const applyPresence = (friend) =>
           String(friend.id) === String(userId)
             ? {
                 ...friend,
@@ -78,52 +103,15 @@ const ContactsPage = () => {
                 isOnline: online,
                 online,
               }
-            : friend
-        )
-      );
+            : friend;
 
-      setFriendSearchResults((previousResults) =>
-        previousResults?.map((friend) =>
-          String(friend.id) === String(userId)
-            ? {
-                ...friend,
-                is_online: online,
-                isOnline: online,
-                online,
-              }
-            : friend
-        ) || previousResults
-      );
+      setFriends((previousFriends) => previousFriends.map(applyPresence));
+      setFriendSearchResults((previousResults) => previousResults?.map(applyPresence) || previousResults);
     };
 
     window.addEventListener("presence:update", handlePresenceUpdate);
     return () => window.removeEventListener("presence:update", handlePresenceUpdate);
-  }, []);
-
-  useEffect(() => {
-    if (activeTab !== "FRIENDS") return undefined;
-
-    const query = globalSearch.trim();
-    const timerId = window.setTimeout(async () => {
-      if (query.length < 2) {
-        setFriendSearchResults(null);
-        return;
-      }
-
-      setSearchingFriends(true);
-      const result = await FriendshipAPI.searchFriends(query);
-      setSearchingFriends(false);
-
-      if (result.isSuccess) {
-        setFriendSearchResults(result.data || []);
-      } else {
-        setFriendSearchResults([]);
-        setError(result.message || "Tìm kiếm bạn bè thất bại");
-      }
-    }, 250);
-
-    return () => window.clearTimeout(timerId);
-  }, [activeTab, globalSearch]);
+  }, [setFriendSearchResults]);
 
   const title = useMemo(() => {
     if (activeTab === "FRIENDS") return "Danh sách bạn bè";
@@ -132,20 +120,17 @@ const ContactsPage = () => {
   }, [activeTab]);
 
   const displayedFriends = friendSearchResults || friends;
+  const pageError = error || (activeTab === "FRIENDS" ? searchMessage : "");
 
   return (
     <div className="flex h-full bg-[#EEF1F6] p-4 gap-4 overflow-hidden">
       <div className="w-[320px] flex flex-col gap-4 shrink-0 h-full">
-        <div className="bg-white rounded-[16px] p-2 px-4 flex items-center shadow-sm h-[60px] shrink-0">
-          <Search className="text-gray-400 mr-3" size={20} />
-          <input
-            type="text"
-            value={globalSearch}
-            onChange={(event) => setGlobalSearch(event.target.value)}
-            placeholder="Tìm kiếm bạn bè"
-            className="w-full bg-transparent outline-none text-[15px] font-medium"
-          />
-        </div>
+        <SearchInput
+          value={globalSearch}
+          onChange={setGlobalSearch}
+          placeholder="Tìm kiếm bạn bè"
+          variant="friend"
+        />
 
         <div className="bg-white rounded-[24px] flex-1 p-6 shadow-sm flex flex-col overflow-hidden">
           <nav className="space-y-4">
@@ -160,6 +145,7 @@ const ContactsPage = () => {
               <UserRound size={22} />
               <span className="text-[16px]">Danh sách bạn bè</span>
             </button>
+
             <button
               onClick={() => setActiveTab("GROUPS")}
               className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${
@@ -171,6 +157,7 @@ const ContactsPage = () => {
               <Users size={22} />
               <span className="text-[16px]">Danh sách nhóm</span>
             </button>
+
             <button
               onClick={() => setActiveTab("REQUESTS")}
               className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${
@@ -201,9 +188,9 @@ const ContactsPage = () => {
           </button>
         </div>
 
-        {error && (
+        {pageError && (
           <div className="rounded-[12px] bg-red-50 px-5 py-3 text-sm font-semibold text-red-600">
-            {error}
+            {pageError}
           </div>
         )}
 
@@ -216,7 +203,7 @@ const ContactsPage = () => {
               onOpenProfile={setSelectedProfile}
             />
           )}
-          {activeTab === "GROUPS" && <GroupList groups={contacts.groups} />}
+          {activeTab === "GROUPS" && <GroupList groups={groups} />}
           {activeTab === "REQUESTS" && (
             <FriendRequestModule
               incomingRequests={incomingRequests}

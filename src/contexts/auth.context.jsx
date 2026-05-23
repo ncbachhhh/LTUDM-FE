@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import UserAPI from "../apis/user.api.jsx";
 import WebSocketAPI from "../apis/websocket.api.jsx";
+import { STORAGE_KEYS } from "../constants/storage.constants.js";
 import { clearStoredAuth, getValidAccessToken, hasStoredAuth } from "../helpers/token.helper.js";
 
 const AuthContext = createContext(null);
@@ -27,7 +28,7 @@ export function AuthProvider({ children }) {
 
         // Lưu userId để chỗ khác dùng nếu cần
         localStorage.setItem(
-            "userId",
+            STORAGE_KEYS.userId,
             response.data.id || response.data.user_id
         );
 

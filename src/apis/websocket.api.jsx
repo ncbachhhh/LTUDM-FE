@@ -1,9 +1,7 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client/dist/sockjs.min.js";
+import { RECONNECT_DELAY_MS, WS_URL } from "../config/app.config.js";
 import { clearStoredAuth, getValidAccessToken } from "../helpers/token.helper.js";
-
-const WS_URL = `${import.meta.env.VITE_HOST_URL}/api/v1/ws`;
-const RECONNECT_DELAY_MS = 5000;
 
 let stompClient = null;
 let connectPromise = null;

@@ -1,5 +1,7 @@
+import { STORAGE_KEYS } from "../constants/storage.constants.js";
+
 export const getUserIdFromToken = () => {
-    const token = localStorage.getItem("accessToken");
+    const token = localStorage.getItem(STORAGE_KEYS.accessToken);
 
     if (!token) return null;
 

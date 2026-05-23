@@ -1,14 +1,13 @@
 import { useState } from "react";
 import FriendshipAPI from "../../../../apis/friendship.api.jsx";
-
-const DEFAULT_AVATAR = "/anh-avata.svg";
+import { PROFILE_AVATAR } from "../../../../constants/asset.constants.js";
 
 const getRequestUser = (request) => request?.user || {};
 
 const getDisplayName = (user) =>
   user?.display_name || user?.displayName || user?.username || user?.email || "Người dùng";
 
-const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || DEFAULT_AVATAR;
+const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || PROFILE_AVATAR;
 
 const formatRequestTime = (request) => {
   const value = request?.created_at || request?.createdAt;

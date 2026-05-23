@@ -1,158 +1,82 @@
+import { API_BASE_URL } from "../config/app.config.js";
 import authorizedAxios from "../helpers/authorizedAxios.js";
-
-const URL = `${import.meta.env.VITE_HOST_URL}/api/v1`;
+import { failureResponse, successResponse } from "../utils/api-response.util.js";
 
 const API_URL = {
-    GET_MY_CONVERSATIONS: `${URL}/conversations/me`,
-    CREATE_CONVERSATION: `${URL}/conversations`,
-    ADD_MEMBERS: (conversationId) =>
-        `${URL}/conversations/${conversationId}/members`,
-    GET_INFO: (conversationId) =>
-        `${URL}/conversations/${conversationId}/info`,
-    UPDATE_NICKNAME: (conversationId, memberId) =>
-        `${URL}/conversations/${conversationId}/members/${memberId}/nickname`,
-    DELETE_CONVERSATION: (conversationId) =>
-        `${URL}/conversations/${conversationId}`,
+  GET_MY_CONVERSATIONS: `${API_BASE_URL}/conversations/me`,
+  CREATE_CONVERSATION: `${API_BASE_URL}/conversations`,
+  ADD_MEMBERS: (conversationId) => `${API_BASE_URL}/conversations/${conversationId}/members`,
+  GET_INFO: (conversationId) => `${API_BASE_URL}/conversations/${conversationId}/info`,
+  UPDATE_NICKNAME: (conversationId, memberId) =>
+    `${API_BASE_URL}/conversations/${conversationId}/members/${memberId}/nickname`,
+  DELETE_CONVERSATION: (conversationId) => `${API_BASE_URL}/conversations/${conversationId}`,
 };
 
 const ConversationAPI = {
-    getMyConversations: async () => {
-        try {
-            const response = await authorizedAxios().get(
-                API_URL.GET_MY_CONVERSATIONS
-            );
+  getMyConversations: async () => {
+    try {
+      const response = await authorizedAxios().get(API_URL.GET_MY_CONVERSATIONS);
+      return successResponse(response, []);
+    } catch (error) {
+      console.error("GET MY CONVERSATIONS ERROR:", error);
+      return failureResponse(error, "Không lấy được danh sách hội thoại", []);
+    }
+  },
 
-            return {
-                isSuccess: true,
-                data: response.data.data || [],
-                message: response.data.message,
-            };
-        } catch (error) {
-            console.error("GET MY CONVERSATIONS ERROR:", error);
+  createConversation: async (data) => {
+    try {
+      const response = await authorizedAxios().post(API_URL.CREATE_CONVERSATION, data);
+      return successResponse(response);
+    } catch (error) {
+      console.error("CREATE CONVERSATION ERROR:", error);
+      return failureResponse(error, "Tạo hội thoại thất bại");
+    }
+  },
 
-            return {
-                isSuccess: false,
-                data: [],
-                message:
-                    error.response?.data?.message || "Không lấy được danh sách hội thoại",
-            };
-        }
-    },
+  addMembers: async (conversationId, memberIds) => {
+    try {
+      const response = await authorizedAxios().post(API_URL.ADD_MEMBERS(conversationId), {
+        member_ids: memberIds,
+      });
+      return successResponse(response);
+    } catch (error) {
+      console.error("ADD MEMBERS ERROR:", error);
+      return failureResponse(error, "Thêm thành viên thất bại");
+    }
+  },
 
-    createConversation: async (data) => {
-        try {
-            const response = await authorizedAxios().post(
-                API_URL.CREATE_CONVERSATION,
-                data
-            );
+  getConversationInfo: async (conversationId) => {
+    try {
+      const response = await authorizedAxios().get(API_URL.GET_INFO(conversationId));
+      return successResponse(response);
+    } catch (error) {
+      console.error("GET CONVERSATION INFO ERROR:", error);
+      return failureResponse(error, "Không lấy được thông tin hội thoại");
+    }
+  },
 
-            return {
-                isSuccess: true,
-                data: response.data.data,
-                message: response.data.message,
-            };
-        } catch (error) {
-            console.error("CREATE CONVERSATION ERROR:", error);
+  updateMemberNickname: async (conversationId, memberId, nickname) => {
+    try {
+      const response = await authorizedAxios().patch(
+        API_URL.UPDATE_NICKNAME(conversationId, memberId),
+        { nickname }
+      );
+      return successResponse(response);
+    } catch (error) {
+      console.error("UPDATE NICKNAME ERROR:", error);
+      return failureResponse(error, "Cập nhật biệt danh thất bại");
+    }
+  },
 
-            return {
-                isSuccess: false,
-                data: null,
-                message: error.response?.data?.message || "Tạo hội thoại thất bại",
-            };
-        }
-    },
-
-    addMembers: async (conversationId, memberIds) => {
-        try {
-            const response = await authorizedAxios().post(
-                API_URL.ADD_MEMBERS(conversationId),
-                {
-                    member_ids: memberIds,
-                }
-            );
-
-            return {
-                isSuccess: true,
-                data: response.data.data,
-                message: response.data.message,
-            };
-        } catch (error) {
-            console.error("ADD MEMBERS ERROR:", error);
-
-            return {
-                isSuccess: false,
-                data: null,
-                message: error.response?.data?.message || "Thêm thành viên thất bại",
-            };
-        }
-    },
-
-    getConversationInfo: async (conversationId) => {
-        try {
-            const response = await authorizedAxios().get(
-                API_URL.GET_INFO(conversationId)
-            );
-
-            return {
-                isSuccess: true,
-                data: response.data.data,
-                message: response.data.message,
-            };
-        } catch (error) {
-            console.error("GET CONVERSATION INFO ERROR:", error);
-
-            return {
-                isSuccess: false,
-                data: null,
-                message: error.response?.data?.message || "Không lấy được thông tin hội thoại",
-            };
-        }
-    },
-
-    updateMemberNickname: async (conversationId, memberId, nickname) => {
-        try {
-            const response = await authorizedAxios().patch(
-                API_URL.UPDATE_NICKNAME(conversationId, memberId),
-                { nickname }
-            );
-
-            return {
-                isSuccess: true,
-                data: response.data.data,
-                message: response.data.message,
-            };
-        } catch (error) {
-            console.error("UPDATE NICKNAME ERROR:", error);
-
-            return {
-                isSuccess: false,
-                data: null,
-                message: error.response?.data?.message || "Cập nhật biệt danh thất bại",
-            };
-        }
-    },
-
-    deleteConversation: async (conversationId) => {
-        try {
-            const response = await authorizedAxios().delete(
-                API_URL.DELETE_CONVERSATION(conversationId)
-            );
-
-            return {
-                isSuccess: true,
-                data: response.data.data,
-                message: response.data.message,
-            };
-        } catch (error) {
-            console.error("DELETE CONVERSATION ERROR:", error);
-
-            return {
-                isSuccess: false,
-                data: null,
-                message: error.response?.data?.message || "Xóa hội thoại thất bại",
-            };
-        }
-    },
+  deleteConversation: async (conversationId) => {
+    try {
+      const response = await authorizedAxios().delete(API_URL.DELETE_CONVERSATION(conversationId));
+      return successResponse(response);
+    } catch (error) {
+      console.error("DELETE CONVERSATION ERROR:", error);
+      return failureResponse(error, "Xóa hội thoại thất bại");
+    }
+  },
 };
 
 export default ConversationAPI;

@@ -1,26 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
+import { GROUP_AVATAR } from "../../../../../constants/asset.constants.js";
 
 export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts = { people: [] } }) {
   const [groupName, setGroupName] = useState("");
   const [memberInput, setMemberInput] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
   const [selectedMembers, setSelectedMembers] = useState([]);
 
-  const friendsList = contacts?.people || [];
+  const friendsList = useMemo(() => contacts?.people || [], [contacts?.people]);
 
-  useEffect(() => {
+  const suggestions = useMemo(() => {
     const query = memberInput.trim().toLowerCase();
-    if (query === "") {
-      setSuggestions([]);
-    } else {
-      const filtered = friendsList.filter((user) =>
+    if (query === "") return [];
+
+    return friendsList.filter((user) =>
         (user.name.toLowerCase().includes(query) ||
           (user.email && user.email.toLowerCase().includes(query))) &&
         !selectedMembers.find((member) => member.id === user.id)
       );
-      setSuggestions(filtered);
-    }
-  }, [memberInput, selectedMembers, friendsList]);
+  }, [friendsList, memberInput, selectedMembers]);
 
   if (!isOpen) return null;
 
@@ -29,7 +26,6 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
       setSelectedMembers([...selectedMembers, user]);
     }
     setMemberInput("");
-    setSuggestions([]);
   };
 
   const handleRemoveMember = (event, id) => {
@@ -51,7 +47,7 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
       name: groupName,
       msg: `Bạn đã tạo nhóm với ${selectedMembers.length} thành viên`,
       time: "Vừa xong",
-      avatar: "https://i.pravatar.cc/150?u=group",
+      avatar: GROUP_AVATAR,
       unread: false,
       pinned: false,
       isGroup: true,

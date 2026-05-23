@@ -1,12 +1,11 @@
 import { useState } from "react";
 import FriendshipAPI from "../../../../../apis/friendship.api.jsx";
-
-const DEFAULT_AVATAR = "/anh-avata.svg";
+import { PROFILE_AVATAR, PROFILE_COVER } from "../../../../../constants/asset.constants.js";
 
 const getDisplayName = (user) =>
   user?.display_name || user?.displayName || user?.username || user?.email || "Người dùng";
 
-const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || DEFAULT_AVATAR;
+const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || PROFILE_AVATAR;
 
 const getFriendshipStatus = (user) =>
   user?.friendship_status || user?.friendshipStatus || "NONE";
@@ -268,7 +267,7 @@ export default function UserProfileModule({
           <div className="relative min-h-[450px] flex flex-col">
             <div className="h-[200px] w-full overflow-hidden bg-slate-200">
               <img
-                src="https://via.placeholder.com/1200x400"
+                src={PROFILE_COVER}
                 className="h-full w-full object-cover"
                 alt=""
               />

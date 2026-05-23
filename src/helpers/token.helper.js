@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config/app.config.js";
+import { STORAGE_KEYS } from "../constants/storage.constants.js";
 
-const API_BASE_URL = `${import.meta.env.VITE_HOST_URL}/api/v1`;
 const REFRESH_WINDOW_MS = 30000;
 let refreshPromise = null;
 
@@ -27,9 +28,9 @@ const isExpired = (token) => {
     return payload.exp * 1000 <= Date.now() + REFRESH_WINDOW_MS;
 };
 
-export const getAccessToken = () => localStorage.getItem("accessToken");
+export const getAccessToken = () => localStorage.getItem(STORAGE_KEYS.accessToken);
 
-export const getRefreshToken = () => localStorage.getItem("refreshToken");
+export const getRefreshToken = () => localStorage.getItem(STORAGE_KEYS.refreshToken);
 
 export const hasStoredAuth = () => Boolean(getAccessToken() || getRefreshToken());
 
@@ -46,17 +47,17 @@ export const storeTokens = ({ accessToken, refreshToken }) => {
         throw new Error("Missing access token");
     }
 
-    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
     if (refreshToken) {
-        localStorage.setItem("refreshToken", refreshToken);
+        localStorage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
     }
     setAccessTokenHeader(accessToken);
 };
 
 export const clearStoredAuth = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userId");
+    localStorage.removeItem(STORAGE_KEYS.accessToken);
+    localStorage.removeItem(STORAGE_KEYS.refreshToken);
+    localStorage.removeItem(STORAGE_KEYS.userId);
     setAccessTokenHeader(null);
 };
 

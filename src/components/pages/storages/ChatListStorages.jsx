@@ -1,6 +1,5 @@
 import { Ban } from "lucide-react";
-
-const DEFAULT_AVATAR = "/anh-avata.svg";
+import { PROFILE_AVATAR } from "../../../constants/asset.constants.js";
 
 const ChatListStorages = ({
   people = [],
@@ -42,7 +41,7 @@ const ChatListStorages = ({
               }`}
             >
               <img
-                src={item.avatar || DEFAULT_AVATAR}
+                src={item.avatar || PROFILE_AVATAR}
                 className="h-[52px] w-[52px] rounded-full border-2 border-white object-cover shadow-sm"
                 alt=""
               />
