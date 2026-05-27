@@ -1,14 +1,10 @@
 import { useMemo, useState } from "react";
-import {
-  ArrowUpDown,
-  Check,
-  ChevronDown,
-  MessageCircle,
-  MoreHorizontal,
-  Search,
-} from "lucide-react";
+import { Badge, Dropdown, Empty, Input, Spin } from "antd";
+import { DownOutlined, MessageOutlined, SearchOutlined, SortAscendingOutlined, UserOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { PROFILE_AVATAR } from "../../../../constants/asset.constants.js";
+
+/* ── Helpers ──────────────────────────────────────── */
 
 const getDisplayName = (user) =>
   user?.display_name || user?.displayName || user?.username || user?.email || "Người dùng";
@@ -17,24 +13,28 @@ const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || PROFILE_AV
 
 const isOnline = (user) => Boolean(user?.is_online || user?.isOnline || user?.online);
 
-const FriendList = ({ friends = [], searchQuery = "", loading = false, onOpenProfile }) => {
+/* ── Sort config ─────────────────────────────────── */
+
+const SORT_OPTIONS = [
+  { key: "AZ", label: "A tới Z" },
+  { key: "ZA", label: "Z tới A" },
+];
+
+/* ── Component ───────────────────────────────────── */
+
+const FriendList = ({ friends = [], loading = false, onOpenProfile }) => {
   const navigate = useNavigate();
   const [sortType, setSortType] = useState("AZ");
   const [localSearch, setLocalSearch] = useState("");
-  const [isSortOpen, setIsSortOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState(null);
 
-  const query = `${searchQuery} ${localSearch}`.trim().toLowerCase();
+  const query = localSearch.trim().toLowerCase();
 
+  /* Lọc, sắp xếp, nhóm theo ký tự đầu */
   const groupedFriends = useMemo(() => {
     const filteredFriends = friends
       .filter((friend) => {
         if (!query) return true;
-        const haystack = [
-          getDisplayName(friend),
-          friend?.username,
-          friend?.email,
-        ]
+        const haystack = [getDisplayName(friend), friend?.username, friend?.email]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
@@ -58,6 +58,34 @@ const FriendList = ({ friends = [], searchQuery = "", loading = false, onOpenPro
 
   const hasFriends = Object.keys(groupedFriends).length > 0;
 
+  /* Menu 3 chấm cho từng bạn bè */
+  const getContextMenuItems = (friend) => [
+    {
+      key: "profile",
+      icon: <UserOutlined />,
+      label: "Xem thông tin",
+      onClick: () => onOpenProfile?.(friend),
+    },
+    {
+      key: "message",
+      icon: <MessageOutlined />,
+      label: "Nhắn tin",
+      onClick: () => navigate(`/chat?userId=${friend.id}`),
+    },
+  ];
+
+  /* Sort dropdown menu */
+  const sortMenuItems = SORT_OPTIONS.map((opt) => ({
+    key: opt.key,
+    label: (
+      <span className="flex items-center justify-between w-full">
+        <span>{opt.label}</span>
+        {sortType === opt.key && <span className="text-[#0029FF] font-bold ml-3">✓</span>}
+      </span>
+    ),
+    onClick: () => setSortType(opt.key),
+  }));
+
   return (
     <div className="flex flex-col h-full text-left">
       <h2 className="font-bold text-[16px] text-gray-700 ml-1 mb-4">
@@ -65,60 +93,37 @@ const FriendList = ({ friends = [], searchQuery = "", loading = false, onOpenPro
       </h2>
 
       <div className="bg-white rounded-[20px] shadow-sm p-8 border border-gray-100 flex-1 flex flex-col overflow-hidden">
-        <div className="flex gap-4 mb-8">
-          <div className="relative flex-1">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500"
-              size={18}
-            />
-            <input
-              type="text"
-              value={localSearch}
-              onChange={(event) => setLocalSearch(event.target.value)}
-              placeholder="Tìm bạn"
-              className="w-full pl-12 pr-4 py-2.5 bg-[#E8EEFB] rounded-[8px] outline-none text-[15px] text-blue-900 border-none"
-            />
-          </div>
+        {/* Toolbar: Search + Sort */}
+        <div className="flex gap-4 mb-6">
+          <Input
+            placeholder="Tìm bạn"
+            allowClear
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            prefix={<SearchOutlined className="text-gray-400 mr-1" />}
+            className="flex-1 !rounded-lg !bg-[#E8EEFB] !border-none !h-[38px] hover:!bg-[#d8e3f9] focus-within:!bg-[#d8e3f9] [&_.ant-input]:!bg-transparent focus-within:!shadow-none"
+          />
 
-          <div className="relative">
-            <button
-              onClick={() => setIsSortOpen((isOpen) => !isOpen)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#BCCCFE] text-[#0029FF] rounded-[8px] font-bold text-[14px]"
-            >
-              <ArrowUpDown size={16} />
+          <Dropdown menu={{ items: sortMenuItems }} trigger={["click"]} placement="bottomRight">
+            <button className="flex items-center gap-2 px-5 py-2 bg-[#BCCCFE] text-[#0029FF] rounded-lg font-bold text-[14px] whitespace-nowrap hover:bg-[#a8bcfe] transition-colors">
+              <SortAscendingOutlined />
               {sortType === "AZ" ? "A tới Z" : "Z tới A"}
-              <ChevronDown size={16} />
+              <DownOutlined className="text-xs" />
             </button>
-            {isSortOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-white border rounded-xl shadow-lg z-20 py-2">
-                {["AZ", "ZA"].map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => {
-                      setSortType(option);
-                      setIsSortOpen(false);
-                    }}
-                    className="w-full flex justify-between px-5 py-2.5 hover:bg-gray-50 font-bold text-sm text-left"
-                  >
-                    <span>{option === "AZ" ? "A tới Z" : "Z tới A"}</span>
-                    {sortType === option && <Check size={18} className="text-blue-600" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          </Dropdown>
         </div>
 
+        {/* Danh sách bạn bè */}
         <div className="flex-1 overflow-y-auto pr-1">
           {loading && (
-            <div className="py-12 text-center text-sm font-semibold text-gray-400">
-              Đang tải danh sách bạn bè...
+            <div className="py-12 flex justify-center">
+              <Spin tip="Đang tải danh sách bạn bè..." />
             </div>
           )}
 
           {!loading && !hasFriends && (
-            <div className="py-12 text-center text-sm font-semibold text-gray-400">
-              Không có bạn bè phù hợp.
+            <div className="py-8 flex justify-center">
+              <Empty description="Không có bạn bè phù hợp" />
             </div>
           )}
 
@@ -126,15 +131,16 @@ const FriendList = ({ friends = [], searchQuery = "", loading = false, onOpenPro
             Object.keys(groupedFriends)
               .sort()
               .map((char) => (
-                <div key={char} className="mb-8">
+                <div key={char} className="mb-6">
                   <h3 className="font-bold text-[18px] mb-3">{char}</h3>
-                  <div className="space-y-1 border-t border-gray-50 pt-4">
+                  <div className="space-y-1 border-t border-gray-50 pt-3">
                     {groupedFriends[char].map((friend) => (
                       <div
                         key={friend.id}
                         onClick={() => onOpenProfile?.(friend)}
                         className="flex items-center justify-between hover:bg-[#F3F6FD] p-3 rounded-xl transition-all group cursor-pointer"
                       >
+                        {/* Avatar + Info */}
                         <div className="flex items-center gap-4 min-w-0">
                           <div className="relative h-[52px] w-[52px] shrink-0">
                             <img
@@ -143,7 +149,10 @@ const FriendList = ({ friends = [], searchQuery = "", loading = false, onOpenPro
                               alt=""
                             />
                             {isOnline(friend) && (
-                              <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-green-500" />
+                              <Badge
+                                status="success"
+                                className="absolute bottom-0 right-0 [&_.ant-badge-status-dot]:!w-3.5 [&_.ant-badge-status-dot]:!h-3.5 [&_.ant-badge-status-dot]:!border-2 [&_.ant-badge-status-dot]:!border-white"
+                              />
                             )}
                           </div>
                           <div className="min-w-0">
@@ -156,42 +165,23 @@ const FriendList = ({ friends = [], searchQuery = "", loading = false, onOpenPro
                           </div>
                         </div>
 
-                        <div className="relative">
+                        {/* Context menu */}
+                        <Dropdown
+                          menu={{ items: getContextMenuItems(friend) }}
+                          trigger={["click"]}
+                          placement="bottomRight"
+                        >
                           <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setActiveMenu(activeMenu === friend.id ? null : friend.id)
-                            }}
+                            onClick={(e) => e.stopPropagation()}
                             className="p-2 hover:bg-white rounded-full transition-all text-gray-300 hover:text-gray-600"
                           >
-                            <MoreHorizontal size={20} className="cursor-pointer" />
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="5" r="1" />
+                              <circle cx="12" cy="12" r="1" />
+                              <circle cx="12" cy="19" r="1" />
+                            </svg>
                           </button>
-
-                          {activeMenu === friend.id && (
-                            <div className="absolute right-0 top-10 w-44 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-2">
-                              <button
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  onOpenProfile?.(friend);
-                                  setActiveMenu(null);
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-gray-50 text-[14px] font-bold text-gray-800"
-                              >
-                                Xem thông tin
-                              </button>
-                              <button
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  navigate(`/chat?userId=${friend.id}`);
-                                }}
-                                className="w-full flex items-center gap-2 text-left px-4 py-2 hover:bg-gray-50 text-[14px] font-bold text-gray-800"
-                              >
-                                <MessageCircle size={16} />
-                                Nhắn tin
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        </Dropdown>
                       </div>
                     ))}
                   </div>

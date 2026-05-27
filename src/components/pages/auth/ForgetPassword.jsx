@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import UserAPI from "../../../apis/user.api.jsx";
 import { useNotification } from "../../../contexts/notification.context.jsx";
+import { Form, Input, Button, Typography } from "antd";
+import { FaArrowLeft } from "react-icons/fa";
+
+const { Title, Paragraph } = Typography;
 
 const ForgetPassword = ({ setView, setResetEmail }) => {
   const [email, setEmail] = useState("");
@@ -8,7 +12,9 @@ const ForgetPassword = ({ setView, setResetEmail }) => {
   const { api } = useNotification();
 
   const handleResetPassword = async (event) => {
-    event.preventDefault();
+    if (event && event.preventDefault) {
+      event.preventDefault();
+    }
 
     if (!email) {
       api.warning({
@@ -41,41 +47,47 @@ const ForgetPassword = ({ setView, setResetEmail }) => {
   };
 
   return (
-    <section className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-full max-w-[600px] bg-[#E3E6EB] rounded-[30px] p-8 shadow-2xl">
+    <section className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[calc(100%-32px)] max-w-[600px] bg-[#E3E6EB] rounded-[30px] p-8 shadow-2xl">
       <button
         onClick={() => setView("login")}
-        className="absolute top-6 left-6 text-xl font-black text-black hover:text-gray-600 transition-colors"
+        className="absolute top-5 left-5 w-9 h-9 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 transition-colors text-black"
       >
-        &lt;
+        <FaArrowLeft className="w-4 h-4" />
       </button>
 
-      <h2 className="text-2xl font-bold text-black text-center mb-2">Khôi phục mật khẩu</h2>
+      <Title level={2} className="!text-2xl !font-bold !text-black !text-center !mt-0 !mb-2">Khôi phục mật khẩu</Title>
 
-      <p className="text-center text-sm text-gray-600 font-medium mb-6 px-4">
+      <Paragraph className="!text-center !text-sm !text-gray-600 !font-medium !mb-6 !px-4">
         Vui lòng nhập email đã đăng ký. Chúng tôi sẽ gửi mã xác nhận (OTP) cho bạn.
-      </p>
+      </Paragraph>
 
-      <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
-        <div>
-          <label className="block text-sm font-bold text-black mb-1">Email</label>
-          <input
+      <Form onFinish={handleResetPassword} layout="vertical" className="flex flex-col gap-4">
+        <Form.Item 
+          label={<span className="text-sm font-bold text-black">Email</span>}
+          className="!mb-0"
+        >
+          <Input
             required
             type="email"
             placeholder="Nhập email của bạn"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full p-4 rounded-xl bg-[#C7D2FE] text-blue-900 font-semibold placeholder-blue-500/70 outline-none focus:ring-2 focus:ring-blue-600"
+            size="large"
+            className="w-full !p-4 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"
           />
-        </div>
+        </Form.Item>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full p-4 mt-2 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {loading ? "Đang gửi..." : "Gửi mã xác nhận"}
-        </button>
-      </form>
+        <Form.Item className="!mb-0">
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            className="w-full !p-6 !mt-2 !rounded-xl !bg-blue-600 !text-white !font-bold !text-lg hover:!bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center border-none"
+          >
+            Gửi mã xác nhận
+          </Button>
+        </Form.Item>
+      </Form>
     </section>
   );
 };

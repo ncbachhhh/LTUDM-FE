@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Modal, Spin, Typography } from "antd";
 import SearchBar from "./SearchBar.jsx";
 import UnreadFilter from "./UnreadFilter";
 import AddFriendModule from "./AddFriendModule.jsx";
@@ -6,6 +7,8 @@ import UserProfileModule from "./UserProfileModule.jsx";
 import ContactItem from "./ContactItem.jsx";
 import CreateGroupModule from "./CreateGroupModule.jsx";
 import { FaUserPlus, FaUsers } from "react-icons/fa";
+
+const { Text } = Typography;
 
 export default function ChatList({
   contacts = { people: [], groups: [] },
@@ -27,8 +30,8 @@ export default function ChatList({
   }, [currentConvoId]);
 
   useEffect(() => {
-    setPeople((prev) => {
-      return (contacts?.people || []).map((p, index) => {
+    setPeople((prev) =>
+      (contacts?.people || []).map((p, index) => {
         const existing = prev.find((item) => item.id === p.id);
         return {
           ...p,
@@ -38,13 +41,13 @@ export default function ChatList({
           pinned: existing ? existing.pinned : false,
           order: index,
         };
-      });
-    });
+      })
+    );
   }, [contacts?.people]);
 
   useEffect(() => {
-    setGroups((prev) => {
-      return (contacts?.groups || []).map((g, index) => {
+    setGroups((prev) =>
+      (contacts?.groups || []).map((g, index) => {
         const existing = prev.find((item) => item.id === g.id);
         return {
           ...g,
@@ -54,15 +57,12 @@ export default function ChatList({
           pinned: existing ? existing.pinned : false,
           order: index,
         };
-      });
-    });
+      })
+    );
   }, [contacts?.groups]);
 
   const handleCreateGroup = (newGroup) => {
-    setGroups((prevGroups) => {
-      const updatedGroups = [{ ...newGroup, order: -1 }, ...prevGroups];
-      return updatedGroups;
-    });
+    setGroups((prevGroups) => [{ ...newGroup, order: -1 }, ...prevGroups]);
     setIsModalOpen(false);
   };
 
@@ -75,7 +75,12 @@ export default function ChatList({
           const isCurrentlyPinned = target?.pinned;
 
           if (!isCurrentlyPinned && pinnedCount >= 3) {
-            alert("Tối đa chỉ ghim được 3 hội thoại!");
+            // Dùng antd Modal.confirm thay cho alert() thuần
+            Modal.warning({
+              title: "Không thể ghim thêm",
+              content: "Tối đa chỉ ghim được 3 hội thoại!",
+              okText: "Đồng ý",
+            });
             return list;
           }
 
@@ -97,10 +102,10 @@ export default function ChatList({
           return list.filter((p) => p.id !== chatId);
 
         case "MARK_UNREAD":
-          return list.map((p) => p.id === chatId ? { ...p, unread: true } : p);
+          return list.map((p) => (p.id === chatId ? { ...p, unread: true } : p));
 
         case "READ":
-          return list.map((p) => p.id === chatId ? { ...p, unread: false } : p);
+          return list.map((p) => (p.id === chatId ? { ...p, unread: false } : p));
 
         default:
           return list;
@@ -124,32 +129,43 @@ export default function ChatList({
   const handleSelect = (id) => {
     setSelectedChat(id);
     handleChatAction("READ", id);
-    if (onSelect) onSelect(id);
+    onSelect?.(id);
   };
+
+  const handleCloseModal = () => setIsModalOpen(false);
 
   return (
     <div className="relative flex h-full w-full flex-col gap-4 overflow-hidden bg-transparent">
+      {/* Thanh tìm kiếm bạn bè */}
       <div className="flex items-center">
         <SearchBar contacts={contacts} />
       </div>
 
+      {/* Bộ lọc chưa đọc */}
       <div className="flex items-center gap-3 px-1">
-        <span className="text-[14px] font-black text-slate-800">Chưa đọc</span>
+        <Text strong className="text-[14px] text-slate-800">Chưa đọc</Text>
         <UnreadFilter initialEnabled={false} />
       </div>
 
+      {/* Danh sách hội thoại cá nhân */}
       <div className="flex min-h-0 flex-[1.55] flex-col overflow-hidden rounded-[10px] bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between shrink-0">
-          <h2 className="text-base font-black text-slate-800 uppercase tracking-wider">People</h2>
-          <button onClick={handleOpenAddFriend} className="hover:opacity-70 transition-all active:scale-90">
+          <Text strong className="text-base text-slate-800 uppercase tracking-wider">People</Text>
+          <button
+            type="button"
+            onClick={handleOpenAddFriend}
+            className="hover:opacity-70 transition-all active:scale-90"
+            title="Thêm bạn"
+          >
             <FaUserPlus className="h-6 w-6 text-slate-700" />
           </button>
         </div>
+
         <div className="flex-1 overflow-y-auto scrollbar-hide">
           {loading ? (
-            <p className="mt-6 text-center text-xs font-semibold text-gray-400">
-              Đang tải hội thoại...
-            </p>
+            <div className="mt-6 flex justify-center">
+              <Spin tip="Đang tải hội thoại..." />
+            </div>
           ) : people.length > 0 ? (
             people.map((user) => (
               <ContactItem
@@ -169,25 +185,32 @@ export default function ChatList({
               />
             ))
           ) : (
-            <p className="mt-6 text-center text-xs font-semibold text-gray-400">
+            <Text type="secondary" className="mt-6 block text-center text-xs font-semibold">
               Không có hội thoại cá nhân
-            </p>
+            </Text>
           )}
         </div>
       </div>
 
+      {/* Danh sách nhóm chat */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between shrink-0">
-          <h2 className="text-base font-black text-slate-800 uppercase tracking-wider">Group</h2>
-          <button onClick={handleOpenCreateGroup} className="hover:opacity-70 transition-all active:scale-90">
+          <Text strong className="text-base text-slate-800 uppercase tracking-wider">Group</Text>
+          <button
+            type="button"
+            onClick={handleOpenCreateGroup}
+            className="hover:opacity-70 transition-all active:scale-90"
+            title="Tạo nhóm"
+          >
             <FaUsers className="h-6 w-6 text-slate-700" />
           </button>
         </div>
+
         <div className="flex-1 overflow-y-auto scrollbar-hide">
           {loading ? (
-            <p className="mt-6 text-center text-xs font-semibold text-gray-400">
-              Đang tải nhóm...
-            </p>
+            <div className="mt-6 flex justify-center">
+              <Spin tip="Đang tải nhóm..." />
+            </div>
           ) : groups.length > 0 ? (
             groups.map((group) => (
               <ContactItem
@@ -206,43 +229,63 @@ export default function ChatList({
               />
             ))
           ) : (
-            <p className="mt-6 text-center text-xs font-semibold text-gray-400">
+            <Text type="secondary" className="mt-6 block text-center text-xs font-semibold">
               Không có nhóm chat
-            </p>
+            </Text>
           )}
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-[4px] p-6">
-          {modalView === "createGroup" ? (
-            <CreateGroupModule
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              onCreate={handleCreateGroup}
-              contacts={contacts}
-            />
-          ) : modalView === "search" ? (
-            <AddFriendModule
-              onClose={() => setIsModalOpen(false)}
-              onSearchSuccess={(user) => {
-                setSearchedUser(user);
-                setModalView("profile");
-              }}
-            />
-          ) : (
-            <UserProfileModule
-              user={searchedUser}
-              onClose={() => setIsModalOpen(false)}
-              onBack={() => setModalView("search")}
-              onMessageClick={(friendId) => {
-                setIsModalOpen(false);
-                onOpenDirectConversation?.(friendId);
-              }}
-            />
-          )}
-        </div>
-      )}
+      {/* Modal Thêm bạn / Xem profile người dùng */}
+      <Modal
+        open={isModalOpen && modalView !== "createGroup"}
+        onCancel={handleCloseModal}
+        footer={null}
+        centered
+        destroyOnHidden
+        width={580}
+        styles={{ body: { padding: 0 }, content: { padding: 0, borderRadius: 24, overflow: "hidden" } }}
+        closeIcon={null}
+      >
+        {modalView === "search" ? (
+          <AddFriendModule
+            onClose={handleCloseModal}
+            onSearchSuccess={(user) => {
+              setSearchedUser(user);
+              setModalView("profile");
+            }}
+          />
+        ) : (
+          <UserProfileModule
+            user={searchedUser}
+            onClose={handleCloseModal}
+            onBack={() => setModalView("search")}
+            onMessageClick={(friendId) => {
+              handleCloseModal();
+              onOpenDirectConversation?.(friendId);
+            }}
+          />
+        )}
+      </Modal>
+
+      {/* Modal Tạo nhóm */}
+      <Modal
+        open={isModalOpen && modalView === "createGroup"}
+        onCancel={handleCloseModal}
+        footer={null}
+        centered
+        destroyOnHidden
+        width={500}
+        styles={{ body: { padding: 0 }, content: { padding: 0, borderRadius: 24, overflow: "hidden" } }}
+        closeIcon={null}
+      >
+        <CreateGroupModule
+          isOpen={isModalOpen && modalView === "createGroup"}
+          onClose={handleCloseModal}
+          onCreate={handleCreateGroup}
+          contacts={contacts}
+        />
+      </Modal>
     </div>
   );
 }

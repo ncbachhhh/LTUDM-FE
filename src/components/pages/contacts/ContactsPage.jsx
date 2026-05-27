@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { UserPlus, UserRound, Users } from "lucide-react";
+import { Alert, Badge, Button, Modal } from "antd";
+import { UserOutlined, TeamOutlined, UserAddOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import ConversationAPI from "../../../apis/conversation.api.jsx";
 import FriendshipAPI from "../../../apis/friendship.api.jsx";
-import SearchInput from "../../common/SearchInput.jsx";
 import { useAuth } from "../../../contexts/auth.context.jsx";
 import { mapConversationsToContacts } from "../../../features/chat/conversation.mapper.js";
-import { useFriendSearch } from "../../../features/friendship/useFriendSearch.js";
 import { getCurrentUserId } from "../../../utils/identity.util.js";
 import UserProfileModule from "../chat/components/chat-list/UserProfileModule.jsx";
 import FriendList from "./components/FriendList";
 import FriendRequestModule from "./components/FriendRequestModule";
 import GroupList from "./components/GroupList";
+
+/* ── Helpers ──────────────────────────────────────── */
 
 const getFriendFromResponse = (friendship) => {
   if (!friendship?.user) return friendship;
@@ -27,6 +28,16 @@ const getFriendFromResponse = (friendship) => {
   };
 };
 
+/* ── Tab config ──────────────────────────────────── */
+
+const TAB_CONFIG = [
+  { key: "FRIENDS", label: "Danh sách bạn bè", icon: <UserOutlined className="!text-lg" /> },
+  { key: "GROUPS", label: "Danh sách nhóm", icon: <TeamOutlined className="!text-lg" /> },
+  { key: "REQUESTS", label: "Lời mời kết bạn", icon: <UserAddOutlined className="!text-lg" /> },
+];
+
+/* ── Component ───────────────────────────────────── */
+
 const ContactsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -39,19 +50,8 @@ const ContactsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedProfile, setSelectedProfile] = useState(null);
-  const {
-    keyword: globalSearch,
-    setKeyword: setGlobalSearch,
-    results: friendSearchResults,
-    loading: searchingFriends,
-    message: searchMessage,
-    setResults: setFriendSearchResults,
-  } = useFriendSearch({
-    searchFn: FriendshipAPI.searchFriends,
-    enabled: activeTab === "FRIENDS",
-    auto: true,
-    emptyMessage: "Không tìm thấy bạn bè phù hợp.",
-  });
+
+  /* ── Fetch data ────────────────────────────────── */
 
   const loadFriendshipData = useCallback(async () => {
     setLoading(true);
@@ -89,6 +89,8 @@ const ContactsPage = () => {
     return () => window.clearTimeout(timerId);
   }, [loadFriendshipData]);
 
+  /* ── Presence updates ──────────────────────────── */
+
   useEffect(() => {
     const handlePresenceUpdate = (event) => {
       const userId = event.detail?.user_id || event.detail?.userId;
@@ -106,12 +108,13 @@ const ContactsPage = () => {
             : friend;
 
       setFriends((previousFriends) => previousFriends.map(applyPresence));
-      setFriendSearchResults((previousResults) => previousResults?.map(applyPresence) || previousResults);
     };
 
     window.addEventListener("presence:update", handlePresenceUpdate);
     return () => window.removeEventListener("presence:update", handlePresenceUpdate);
-  }, [setFriendSearchResults]);
+  }, []);
+
+  /* ── Derived state ─────────────────────────────── */
 
   const title = useMemo(() => {
     if (activeTab === "FRIENDS") return "Danh sách bạn bè";
@@ -119,87 +122,82 @@ const ContactsPage = () => {
     return "Lời mời kết bạn";
   }, [activeTab]);
 
-  const displayedFriends = friendSearchResults || friends;
-  const pageError = error || (activeTab === "FRIENDS" ? searchMessage : "");
+  const tabIcon = useMemo(() => {
+    const found = TAB_CONFIG.find((t) => t.key === activeTab);
+    return found?.icon || <UserAddOutlined />;
+  }, [activeTab]);
+
+  const displayedFriends = friends;
+  const pageError = error;
+  const requestCount = incomingRequests.length;
 
   return (
     <div className="flex h-full bg-[#EEF1F6] p-4 gap-4 overflow-hidden">
+      {/* ── Sidebar ──────────────────────────────── */}
       <div className="w-[320px] flex flex-col gap-4 shrink-0 h-full">
-        <SearchInput
-          value={globalSearch}
-          onChange={setGlobalSearch}
-          placeholder="Tìm kiếm bạn bè"
-          variant="friend"
-        />
-
         <div className="bg-white rounded-[24px] flex-1 p-6 shadow-sm flex flex-col overflow-hidden">
-          <nav className="space-y-4">
-            <button
-              onClick={() => setActiveTab("FRIENDS")}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${
-                activeTab === "FRIENDS"
-                  ? "bg-[#F1F4FF] text-black font-bold"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              <UserRound size={22} />
-              <span className="text-[16px]">Danh sách bạn bè</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("GROUPS")}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${
-                activeTab === "GROUPS"
-                  ? "bg-[#F1F4FF] text-black font-bold"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              <Users size={22} />
-              <span className="text-[16px]">Danh sách nhóm</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("REQUESTS")}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${
-                activeTab === "REQUESTS"
-                  ? "bg-[#F1F4FF] text-black font-bold"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              <UserPlus size={22} />
-              <span className="text-[16px]">Lời mời kết bạn</span>
-            </button>
+          <nav className="space-y-3">
+            {TAB_CONFIG.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${
+                  activeTab === tab.key
+                    ? "bg-[#F1F4FF] text-black font-bold"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {tab.icon}
+                <span className="text-[16px] flex-1 text-left">{tab.label}</span>
+                {tab.key === "REQUESTS" && requestCount > 0 && (
+                  <Badge
+                    count={requestCount}
+                    size="small"
+                    className="[&_.ant-badge-count]:!bg-[#0029FF]"
+                  />
+                )}
+              </button>
+            ))}
           </nav>
         </div>
       </div>
 
+      {/* ── Main content ─────────────────────────── */}
       <div className="flex-1 flex flex-col gap-4 overflow-hidden h-full">
+        {/* Header */}
         <div className="bg-white rounded-[16px] px-8 h-[60px] flex items-center justify-between shadow-sm shrink-0">
-          <div className="flex items-center gap-4">
-            <UserPlus size={22} className="text-black" />
+          <div className="flex items-center gap-3">
+            {tabIcon}
             <h1 className="font-bold text-[17px]">{title}</h1>
           </div>
-          <button
+          <Button
+            icon={<ReloadOutlined />}
             onClick={loadFriendshipData}
-            disabled={loading}
-            className="px-4 py-2 rounded-lg bg-[#E8EEFB] text-[#0029FF] text-sm font-bold disabled:opacity-50"
+            loading={loading}
+            className="!rounded-lg !bg-[#E8EEFB] !text-[#0029FF] !border-none !font-bold !text-sm hover:!bg-[#d6e0f7]"
           >
             Làm mới
-          </button>
+          </Button>
         </div>
 
+        {/* Error */}
         {pageError && (
-          <div className="rounded-[12px] bg-red-50 px-5 py-3 text-sm font-semibold text-red-600">
-            {pageError}
-          </div>
+          <Alert
+            type="error"
+            message={pageError}
+            showIcon
+            closable
+            onClose={() => setError("")}
+            className="!rounded-xl !font-semibold"
+          />
         )}
 
+        {/* Tab content */}
         <div className="flex-1 overflow-hidden">
           {activeTab === "FRIENDS" && (
             <FriendList
               friends={displayedFriends}
-              searchQuery={friendSearchResults ? "" : globalSearch}
-              loading={loading || searchingFriends}
+              loading={loading}
               onOpenProfile={setSelectedProfile}
             />
           )}
@@ -215,8 +213,18 @@ const ContactsPage = () => {
         </div>
       </div>
 
-      {selectedProfile && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-[4px] p-6">
+      {/* ── Profile Modal ────────────────────────── */}
+      <Modal
+        open={!!selectedProfile}
+        onCancel={() => setSelectedProfile(null)}
+        footer={null}
+        centered
+        destroyOnHidden
+        width={600}
+        styles={{ body: { padding: 0 }, content: { padding: 0, borderRadius: 24, overflow: "hidden" } }}
+        closeIcon={null}
+      >
+        {selectedProfile && (
           <UserProfileModule
             key={selectedProfile.id}
             user={selectedProfile}
@@ -227,8 +235,8 @@ const ContactsPage = () => {
               navigate(`/chat?userId=${encodeURIComponent(userId)}`);
             }}
           />
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

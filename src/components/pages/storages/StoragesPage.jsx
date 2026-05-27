@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Alert, Empty } from "antd";
 import ChatListStorages from "./ChatListStorages";
 import ChatWindowStorages from "./ChatWindowStorages";
 import FriendshipAPI from "../../../apis/friendship.api.jsx";
@@ -6,6 +7,8 @@ import ConversationAPI from "../../../apis/conversation.api.jsx";
 import { PROFILE_AVATAR } from "../../../constants/asset.constants.js";
 import { useAuth } from "../../../contexts/auth.context.jsx";
 import { getCurrentUserId } from "../../../utils/identity.util.js";
+
+/* ── Helper Functions ─────────────────────────────── */
 
 const getMemberId = (member) => member?.user_id || member?.userId || member?.id;
 
@@ -28,6 +31,8 @@ const getBlockedUserFromResponse = (friendship) => {
   };
 };
 
+/* ── Component ─────────────────────────────────────── */
+
 const StoragesPage = () => {
   const { user } = useAuth();
   const [selectedChat, setSelectedChat] = useState(null);
@@ -37,6 +42,7 @@ const StoragesPage = () => {
 
   const currentUserId = getCurrentUserId(user);
 
+  /* Tải danh sách người dùng bị chặn và các cuộc trò chuyện */
   const loadBlockedConversations = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -91,25 +97,32 @@ const StoragesPage = () => {
 
   return (
     <div className="flex h-full gap-4 overflow-hidden bg-[#Eef1f6] p-4">
+      {/* Sidebar - Danh sách chặn */}
       <div className="flex h-full w-[340px] shrink-0 flex-col gap-4 text-left">
         <ChatListStorages
-          people={blockedUsers}
+          users={blockedUsers}
           loading={loading}
           onSelect={setSelectedChat}
           selectedId={selectedChat?.id}
         />
       </div>
 
+      {/* Cửa sổ chat chi tiết / Empty State */}
       <div className="h-full flex-1 overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm">
         {error ? (
-          <div className="flex h-full items-center justify-center text-sm font-semibold text-red-500">
-            {error}
+          <div className="flex h-full items-center justify-center p-6">
+            <Alert
+              type="error"
+              message={error}
+              showIcon
+              className="!font-semibold"
+            />
           </div>
         ) : selectedChat ? (
           <ChatWindowStorages user={selectedChat} onChanged={loadBlockedConversations} />
         ) : (
-          <div className="flex h-full items-center justify-center text-gray-400">
-            Chọn một người đã chặn để xem chi tiết
+          <div className="flex h-full items-center justify-center p-6">
+            <Empty description="Chọn một người đã chặn để xem chi tiết" />
           </div>
         )}
       </div>
