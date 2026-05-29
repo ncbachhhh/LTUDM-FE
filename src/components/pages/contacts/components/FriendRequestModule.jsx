@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { Alert, Button, Empty, Spin, Tag } from "antd";
+import { CheckOutlined, CloseOutlined, UndoOutlined } from "@ant-design/icons";
 import FriendshipAPI from "../../../../apis/friendship.api.jsx";
 import { PROFILE_AVATAR } from "../../../../constants/asset.constants.js";
+
+/* ── Helpers ──────────────────────────────────────── */
 
 const getRequestUser = (request) => request?.user || {};
 
@@ -25,11 +29,73 @@ const formatRequestTime = (request) => {
   });
 };
 
-const EmptyState = ({ text }) => (
-  <div className="rounded-[16px] bg-[#F8F9FC] px-6 py-10 text-center text-sm font-semibold text-gray-400">
-    {text}
-  </div>
-);
+/* ── Request Card ────────────────────────────────── */
+
+const RequestCard = ({ request, isSent, isProcessing, onAction }) => {
+  const user = getRequestUser(request);
+
+  return (
+    <div
+      className={`bg-[#F8F9FC] p-5 rounded-[16px] flex items-center gap-4 shadow-sm transition-all hover:shadow-md`}
+    >
+      <img
+        src={getAvatarUrl(user)}
+        className="w-[64px] h-[64px] rounded-full object-cover border-2 border-white shadow-sm shrink-0"
+        alt=""
+      />
+
+      <div className="flex flex-col flex-1 min-w-0 text-left">
+        <div className="mb-2 min-w-0">
+          <p className="font-bold text-[15px] text-gray-800 truncate">
+            {getDisplayName(user)}
+          </p>
+          {user.email && (
+            <p className="text-[12px] text-gray-500 truncate">{user.email}</p>
+          )}
+          <Tag color="default" className="!mt-1 !text-[11px] !px-2 !border-none !bg-gray-100 !text-gray-400">
+            {formatRequestTime(request)}
+          </Tag>
+        </div>
+
+        {!isSent ? (
+          <div className="flex gap-2 w-full">
+            <Button
+              type="primary"
+              size="small"
+              icon={<CheckOutlined />}
+              loading={isProcessing}
+              onClick={() => onAction(request, "ACCEPT")}
+              className="flex-1 !rounded-lg !bg-[#BCCCFE] !text-[#0029FF] !border-none !font-bold !text-[12px] hover:!bg-[#a8bcfe]"
+            >
+              Chấp nhận
+            </Button>
+            <Button
+              size="small"
+              icon={<CloseOutlined />}
+              loading={isProcessing}
+              onClick={() => onAction(request, "DECLINE")}
+              className="flex-1 !rounded-lg !bg-[#EDEDEE] !text-gray-700 !border-none !font-bold !text-[12px] hover:!bg-gray-300"
+            >
+              Từ chối
+            </Button>
+          </div>
+        ) : (
+          <Button
+            size="small"
+            icon={<UndoOutlined />}
+            loading={isProcessing}
+            onClick={() => onAction(request, "WITHDRAW")}
+            className="w-full !rounded-lg !bg-[#EDEDEE] !text-gray-700 !border-none !font-bold !text-[12px] hover:!bg-gray-300"
+          >
+            Thu hồi lời mời
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ── Main Component ──────────────────────────────── */
 
 const FriendRequestModule = ({
   incomingRequests = [],
@@ -64,74 +130,24 @@ const FriendRequestModule = ({
     onChanged?.();
   };
 
-  const RequestCard = ({ request, isSent }) => {
-    const user = getRequestUser(request);
-    const isProcessing = processingId === request.id;
-
-    return (
-      <div
-        className={`bg-[#F1F3F7] p-5 rounded-[16px] flex items-center gap-4 shadow-sm ${
-          viewMode === "DEFAULT" ? "min-w-[330px]" : "w-full"
-        }`}
-      >
-        <img
-          src={getAvatarUrl(user)}
-          className="w-[72px] h-[72px] rounded-full object-cover border-2 border-white shadow-sm shrink-0"
-          alt=""
-        />
-
-        <div className="flex flex-col flex-1 min-w-0 text-left">
-          <div className="mb-3 min-w-0">
-            <p className="font-bold text-[16px] text-gray-800 truncate">
-              {getDisplayName(user)}
-            </p>
-            {user.email && <p className="text-[12px] text-gray-500 truncate">{user.email}</p>}
-            <p className="text-[11px] text-gray-400 italic">{formatRequestTime(request)}</p>
-          </div>
-
-          {!isSent ? (
-            <div className="flex gap-2 w-full">
-              <button
-                disabled={isProcessing}
-                onClick={() => handleRequestAction(request, "ACCEPT")}
-                className="flex-1 py-2 bg-[#BCCCFE] text-[#0029FF] rounded-lg text-[12px] font-bold hover:bg-blue-300 disabled:opacity-50"
-              >
-                {isProcessing ? "Đang xử lý" : "Chấp nhận"}
-              </button>
-              <button
-                disabled={isProcessing}
-                onClick={() => handleRequestAction(request, "DECLINE")}
-                className="flex-1 py-2 bg-[#D9D9D9] text-gray-700 rounded-lg text-[12px] font-bold hover:bg-gray-300 disabled:opacity-50"
-              >
-                Từ chối
-              </button>
-            </div>
-          ) : (
-            <button
-              disabled={isProcessing}
-              onClick={() => handleRequestAction(request, "WITHDRAW")}
-              className="w-full py-2 bg-[#D9D9D9] text-gray-700 rounded-lg text-[12px] font-bold hover:bg-gray-300 disabled:opacity-50"
-            >
-              {isProcessing ? "Đang hủy..." : "Thu hồi lời mời"}
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
+  /* Render danh sách request dạng lưới */
   const renderRequestGrid = (requests, isSent) => {
     const visibleRequests =
       viewMode === "DEFAULT" ? requests.slice(0, 3) : requests;
 
     if (loading) {
-      return <EmptyState text="Đang tải lời mời kết bạn..." />;
+      return (
+        <div className="py-10 flex justify-center">
+          <Spin tip="Đang tải lời mời kết bạn..." />
+        </div>
+      );
     }
 
     if (visibleRequests.length === 0) {
       return (
-        <EmptyState
-          text={isSent ? "Bạn chưa gửi lời mời nào." : "Không có lời mời mới."}
+        <Empty
+          description={isSent ? "Bạn chưa gửi lời mời nào" : "Không có lời mời mới"}
+          className="!py-8"
         />
       );
     }
@@ -145,7 +161,17 @@ const FriendRequestModule = ({
         }
       >
         {visibleRequests.map((request) => (
-          <RequestCard key={request.id} request={request} isSent={isSent} />
+          <div
+            key={request.id}
+            className={viewMode === "DEFAULT" ? "min-w-[320px] shrink-0" : ""}
+          >
+            <RequestCard
+              request={request}
+              isSent={isSent}
+              isProcessing={processingId === request.id}
+              onAction={handleRequestAction}
+            />
+          </div>
         ))}
       </div>
     );
@@ -155,13 +181,19 @@ const FriendRequestModule = ({
   const canExpandOutgoing = outgoingRequests.length > 3;
 
   return (
-    <div className="h-full flex flex-col gap-3 overflow-hidden animate-in fade-in duration-300">
+    <div className="h-full flex flex-col gap-3 overflow-hidden">
       {error && (
-        <div className="rounded-[12px] bg-red-50 px-5 py-3 text-sm font-semibold text-red-600">
-          {error}
-        </div>
+        <Alert
+          type="error"
+          message={error}
+          showIcon
+          closable
+          onClose={() => setError("")}
+          className="!rounded-xl !font-semibold"
+        />
       )}
 
+      {/* ── Lời mời nhận được ── */}
       {(viewMode === "DEFAULT" || viewMode === "ALL_INCOMING") && (
         <div
           className={`bg-white rounded-[20px] p-5 shadow-sm border border-gray-50 flex flex-col overflow-hidden ${
@@ -172,30 +204,35 @@ const FriendRequestModule = ({
             Lời mời kết bạn ({incomingRequests.length})
           </h2>
 
-          <div className="flex-1 overflow-y-auto no-scrollbar">
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
             {renderRequestGrid(incomingRequests, false)}
 
             {viewMode === "ALL_INCOMING" && (
-              <button
+              <Button
+                type="dashed"
+                block
                 onClick={() => setViewMode("DEFAULT")}
-                className="w-full mt-6 py-2.5 border-[1.5px] border-[#0029FF] text-[#0029FF] rounded-[12px] font-bold text-[14px] hover:bg-blue-50"
+                className="!mt-5 !rounded-xl !font-bold !text-[#0029FF] !border-[#0029FF]"
               >
                 Rút gọn
-              </button>
+              </Button>
             )}
           </div>
 
           {viewMode === "DEFAULT" && canExpandIncoming && (
-            <button
+            <Button
+              type="dashed"
+              block
               onClick={() => setViewMode("ALL_INCOMING")}
-              className="w-full mt-4 py-2.5 border-[1.5px] border-[#0029FF] text-[#0029FF] rounded-[12px] font-bold text-[14px] hover:bg-blue-50"
+              className="!mt-4 !rounded-xl !font-bold !text-[#0029FF] !border-[#0029FF]"
             >
               Xem tất cả
-            </button>
+            </Button>
           )}
         </div>
       )}
 
+      {/* ── Lời mời đã gửi ── */}
       {(viewMode === "DEFAULT" || viewMode === "ALL_OUTGOING") && (
         <div
           className={`bg-white rounded-[20px] p-5 shadow-sm border border-gray-100 flex flex-col overflow-hidden ${
@@ -206,26 +243,30 @@ const FriendRequestModule = ({
             Lời mời đã gửi ({outgoingRequests.length})
           </h2>
 
-          <div className="flex-1 overflow-y-auto no-scrollbar">
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
             {renderRequestGrid(outgoingRequests, true)}
 
             {viewMode === "ALL_OUTGOING" && (
-              <button
+              <Button
+                type="dashed"
+                block
                 onClick={() => setViewMode("DEFAULT")}
-                className="w-full mt-6 py-2.5 border-[1.5px] border-[#0029FF] text-[#0029FF] rounded-[12px] font-bold text-[14px] hover:bg-blue-50"
+                className="!mt-5 !rounded-xl !font-bold !text-[#0029FF] !border-[#0029FF]"
               >
                 Rút gọn
-              </button>
+              </Button>
             )}
           </div>
 
           {viewMode === "DEFAULT" && canExpandOutgoing && (
-            <button
+            <Button
+              type="dashed"
+              block
               onClick={() => setViewMode("ALL_OUTGOING")}
-              className="w-full mt-4 py-2.5 border-[1.5px] border-[#0029FF] text-[#0029FF] rounded-[12px] font-bold text-[14px] hover:bg-blue-50"
+              className="!mt-4 !rounded-xl !font-bold !text-[#0029FF] !border-[#0029FF]"
             >
               Xem tất cả
-            </button>
+            </Button>
           )}
         </div>
       )}

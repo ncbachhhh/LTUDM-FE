@@ -31,7 +31,7 @@ const MessageAPI = {
     }
   },
 
-  getMessagesByConversation: async (conversationId, page = 0, size = 50) => {
+  getMessagesByConversation: async (conversationId, page = 0, size = 20) => {
     try {
       const response = await authorizedAxios().get(
         API_URL.GET_MESSAGES_BY_CONVERSATION(conversationId, page, size)

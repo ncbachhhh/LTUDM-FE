@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { Button } from "antd";
+import { X, Search, Users, Camera, Plus, Check } from "lucide-react";
 import { GROUP_AVATAR } from "../../../../../constants/asset.constants.js";
 
 export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts = { people: [] } }) {
@@ -8,167 +10,227 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
 
   const friendsList = useMemo(() => contacts?.people || [], [contacts?.people]);
 
+  // Gợi ý tên khi gõ từ khóa, loại bỏ người đã được chọn
   const suggestions = useMemo(() => {
     const query = memberInput.trim().toLowerCase();
-    if (query === "") return [];
-
-    return friendsList.filter((user) =>
-        (user.name.toLowerCase().includes(query) ||
-          (user.email && user.email.toLowerCase().includes(query))) &&
-        !selectedMembers.find((member) => member.id === user.id)
-      );
+    if (!query) return [];
+    return friendsList.filter(
+      (user) =>
+        (user.name.toLowerCase().includes(query) || user.email?.toLowerCase().includes(query)) &&
+        !selectedMembers.find((m) => m.id === user.id)
+    );
   }, [friendsList, memberInput, selectedMembers]);
 
   if (!isOpen) return null;
 
   const handleAddMember = (user) => {
-    if (!selectedMembers.find((member) => member.id === user.id)) {
-      setSelectedMembers([...selectedMembers, user]);
+    if (!selectedMembers.find((m) => m.id === user.id)) {
+      setSelectedMembers((prev) => [...prev, user]);
     }
     setMemberInput("");
   };
 
-  const handleRemoveMember = (event, id) => {
-    event.stopPropagation();
-    setSelectedMembers((prev) => prev.filter((member) => member.id !== id));
+  const handleRemoveMember = (id) => {
+    setSelectedMembers((prev) => prev.filter((m) => m.id !== id));
   };
 
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter" && suggestions.length > 0) {
-      handleAddMember(suggestions[0]);
-    }
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && suggestions.length > 0) handleAddMember(suggestions[0]);
   };
 
   const handleSubmit = () => {
-    if (!groupName || selectedMembers.length === 0) return;
+    if (!groupName.trim() || selectedMembers.length === 0) return;
 
-    const newGroup = {
+    onCreate?.({
       id: Date.now(),
-      name: groupName,
+      name: groupName.trim(),
       msg: `Bạn đã tạo nhóm với ${selectedMembers.length} thành viên`,
       time: "Vừa xong",
       avatar: GROUP_AVATAR,
       unread: false,
       pinned: false,
       isGroup: true,
-    };
-
-    onCreate?.(newGroup);
+    });
 
     setGroupName("");
     setSelectedMembers([]);
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-      <div className="w-[480px] rounded-[24px] bg-white shadow-2xl overflow-hidden border border-gray-100">
-        <div className="relative flex items-center justify-center border-b border-gray-100 py-6">
-          <h2 className="text-[24px] font-bold text-black">Tạo nhóm</h2>
-          <button onClick={onClose} className="absolute right-6 p-1 hover:bg-gray-100 rounded-full transition-all">
-            <svg className="h-7 w-7 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+  const canSubmit = Boolean(groupName.trim() && selectedMembers.length > 0);
 
-        <div className="px-8 py-6">
-          <div className="mb-6 flex items-center gap-4">
-            <button className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border-2 border-[#BCCCFB] bg-white text-[#BCCCFB]">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              </svg>
+  return (
+    <div className="flex flex-col bg-white" style={{ maxHeight: "90vh", overflowY: "auto" }}>
+      {/* ── Header ─────────────────────────────────── */}
+      <div
+        className="relative flex items-center justify-center px-6 py-5 shrink-0"
+        style={{ background: "linear-gradient(135deg, #0033FF 0%, #7C3AED 100%)" }}
+      >
+        <button
+          onClick={onClose}
+          className="absolute left-5 flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30"
+        >
+          <X size={18} />
+        </button>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+            <Users size={16} className="text-white" />
+          </div>
+          <h2 className="text-xl font-black text-white">Tạo nhóm chat</h2>
+        </div>
+      </div>
+
+      <div className="px-6 py-5 space-y-5">
+        {/* ── Tên nhóm ───────────────────────────── */}
+        <div>
+          <label className="mb-2 block text-[12px] font-black uppercase tracking-widest text-slate-400">
+            Tên nhóm
+          </label>
+          <div className="flex items-center gap-3">
+            {/* Nút đổi ảnh nhóm */}
+            <button
+              type="button"
+              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C7D2FE] bg-[#F0F4FF] text-[#6366F1] transition hover:bg-[#E0E7FF]"
+              title="Thêm ảnh nhóm"
+            >
+              <Camera size={18} />
             </button>
+
             <input
               type="text"
-              placeholder="Nhập tên nhóm"
-              className="flex-1 rounded-[12px] bg-[#DCE4FF] p-4 text-[15px] font-semibold text-black placeholder:text-[#818CF8] focus:outline-none"
+              placeholder="Đặt tên cho nhóm..."
               value={groupName}
-              onChange={(event) => setGroupName(event.target.value)}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="flex-1 rounded-2xl border-2 border-transparent bg-[#F0F4FF] px-4 py-3 text-[15px] font-semibold text-slate-800 placeholder:font-normal placeholder:text-slate-400 outline-none transition focus:border-[#6366F1]/40 focus:bg-white"
             />
           </div>
+        </div>
 
-          <div className="mb-6 relative">
-            <h3 className="mb-3 text-[18px] font-bold text-black">Thêm thành viên</h3>
-            <input
-              type="text"
-              placeholder="Nhập tên bạn bè, email"
-              className="w-full rounded-[12px] bg-[#DCE4FF] p-4 text-[15px] font-semibold text-black placeholder:text-[#818CF8] focus:outline-none mb-4"
-              value={memberInput}
-              onChange={(event) => setMemberInput(event.target.value)}
-              onKeyDown={handleKeyDown}
-            />
+        {/* ── Thêm thành viên ────────────────────── */}
+        <div>
+          <label className="mb-2 block text-[12px] font-black uppercase tracking-widest text-slate-400">
+            Thành viên {selectedMembers.length > 0 && `(${selectedMembers.length})`}
+          </label>
 
+          {/* Tags thành viên đã chọn */}
+          {selectedMembers.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {selectedMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[13px] font-bold text-[#4F46E5]"
+                >
+                  <img
+                    src={member.avatar}
+                    alt=""
+                    className="h-5 w-5 rounded-full object-cover border border-white"
+                  />
+                  <span>{member.name}</span>
+                  <button
+                    onClick={() => handleRemoveMember(member.id)}
+                    className="ml-0.5 text-[#6366F1] hover:text-red-500 transition-colors"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Ô tìm thành viên */}
+          <div className="relative">
+            <div className="flex items-center gap-2 rounded-2xl border-2 border-transparent bg-[#F0F4FF] px-4 py-3 transition focus-within:border-[#6366F1]/40 focus-within:bg-white">
+              <Search size={16} className="shrink-0 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Tìm bạn bè để thêm vào nhóm..."
+                value={memberInput}
+                onChange={(e) => setMemberInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1 bg-transparent text-[14px] font-semibold text-slate-800 placeholder:font-normal placeholder:text-slate-400 outline-none"
+              />
+            </div>
+
+            {/* Dropdown gợi ý */}
             {suggestions.length > 0 && (
-              <div className="absolute z-[110] left-0 right-0 top-[95px] max-h-[160px] overflow-y-auto rounded-xl border border-gray-100 bg-white shadow-2xl">
+              <div className="absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl">
                 {suggestions.map((user) => (
-                  <div key={user.id} onClick={() => handleAddMember(user)} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer">
-                    <img src={user.avatar} className="h-9 w-9 rounded-full object-cover" alt="" />
-                    <div className="flex flex-col">
-                      <span className="text-[14px] font-bold text-black">{user.name}</span>
-                      <span className="text-[11px] text-gray-400">{user.email || "Thành viên"}</span>
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => handleAddMember(user)}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#F0F4FF]"
+                  >
+                    <img src={user.avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-[14px] font-bold text-slate-800">{user.name}</p>
+                      <p className="truncate text-[12px] text-slate-400">{user.email || "Thành viên"}</p>
                     </div>
-                  </div>
+                    <Plus size={16} className="text-[#6366F1] shrink-0" />
+                  </button>
                 ))}
               </div>
             )}
-
-            <div className="flex items-center gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-2">
-              {selectedMembers.map((member) => (
-                <div key={member.id} className="flex items-center gap-2 rounded-full bg-[#E5E7EB] pl-1 pr-3 py-1 shrink-0">
-                  <img src={member.avatar} className="h-8 w-8 rounded-full object-cover" alt="" />
-                  <span className="text-[13px] font-bold text-black whitespace-nowrap">{member.name}</span>
-                  <button
-                    onClick={(event) => handleRemoveMember(event, member.id)}
-                    className="text-black hover:text-red-500 transition-colors p-0.5"
-                  >
-                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-            </div>
           </div>
+        </div>
 
-          <div className="mb-8">
-            <h3 className="mb-4 text-[18px] font-bold text-black">Chat gần đây</h3>
-            <div className="space-y-4">
-              {friendsList.slice(0, 3).map((friend) => (
-                <div key={friend.id} className="flex items-center justify-between group">
-                  <div className="flex items-center gap-3">
-                    <img src={friend.avatar} className="h-10 w-10 rounded-full object-cover" alt="" />
-                    <span className="text-[15px] font-bold text-black">{friend.name}</span>
+        {/* ── Bạn bè gần đây ─────────────────────── */}
+        {friendsList.length > 0 && (
+          <div>
+            <label className="mb-3 block text-[12px] font-black uppercase tracking-widest text-slate-400">
+              Bạn bè gần đây
+            </label>
+            <div className="space-y-1.5">
+              {friendsList.slice(0, 4).map((friend) => {
+                const isSelected = selectedMembers.some((m) => m.id === friend.id);
+                return (
+                  <div
+                    key={friend.id}
+                    className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 transition ${
+                      isSelected ? "bg-[#EEF2FF]" : "hover:bg-[#F8FAFF]"
+                    }`}
+                  >
+                    <img src={friend.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-[14px] font-bold text-slate-800">{friend.name}</p>
+                    </div>
+                    <button
+                      onClick={() =>
+                        isSelected ? handleRemoveMember(friend.id) : handleAddMember(friend)
+                      }
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${
+                        isSelected
+                          ? "bg-[#6366F1] text-white hover:bg-red-500"
+                          : "bg-[#F0F4FF] text-[#6366F1] hover:bg-[#E0E7FF]"
+                      }`}
+                    >
+                      {isSelected ? <Check size={15} /> : <Plus size={15} />}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleAddMember(friend)}
-                    className="text-black hover:opacity-50"
-                  >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
+        )}
 
-          <div className="flex gap-5 pt-2">
-            <button onClick={onClose} className="flex-1 rounded-[16px] bg-[#F3F4F1] py-4 text-[18px] font-bold text-black hover:bg-gray-200 transition-all active:scale-95">
-              Hủy
-            </button>
-            <button
-              onClick={handleSubmit}
-              className={`flex-1 rounded-[16px] py-4 text-[18px] font-bold text-black transition-all active:scale-95 ${
-                groupName && selectedMembers.length > 0
-                  ? "bg-[#BCCCFB] hover:bg-[#A5B9F9]"
-                  : "bg-gray-200 opacity-50 cursor-not-allowed"
-              }`}
-              disabled={!groupName || selectedMembers.length === 0}
-            >
-              Tạo nhóm
-            </button>
-          </div>
+        {/* ── Footer ─────────────────────────────── */}
+        <div className="flex gap-3 pt-2">
+          <Button
+            onClick={onClose}
+            size="large"
+            className="flex-1 !rounded-xl !border-gray-200 !text-[15px] !font-bold !text-slate-600 hover:!bg-gray-50"
+          >
+            Hủy
+          </Button>
+          <Button
+            type="primary"
+            size="large"
+            disabled={!canSubmit}
+            onClick={handleSubmit}
+            className="flex-1 !rounded-xl !bg-[#6366F1] !border-none !text-[15px] !font-bold hover:!opacity-90 disabled:!opacity-40"
+          >
+            Tạo nhóm
+          </Button>
         </div>
       </div>
     </div>

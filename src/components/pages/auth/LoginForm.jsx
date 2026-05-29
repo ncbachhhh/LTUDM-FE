@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import UserAPI from "../../../apis/user.api.jsx";
 import { useAuth } from "../../../contexts/auth.context.jsx";
 import { useNotification } from "../../../contexts/notification.context.jsx";
+import { Form, Input, Button, Typography } from "antd";
+import { FaArrowLeft } from "react-icons/fa";
+
+const { Title } = Typography;
 
 const LoginForm = ({ setView }) => {
     const navigate = useNavigate();
@@ -26,7 +30,9 @@ const LoginForm = ({ setView }) => {
     };
 
     const handleLogin = async (event) => {
-        event.preventDefault();
+        if (event && event.preventDefault) {
+            event.preventDefault();
+        }
 
         if (!formData.email || !formData.password) {
             api.warning({
@@ -70,56 +76,68 @@ const LoginForm = ({ setView }) => {
         <section className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[calc(100%-32px)] max-w-[600px] bg-[#E3E6EB] rounded-[30px] p-8 shadow-2xl">
             <button
                 onClick={() => setView("landing")}
-                className="absolute top-6 left-6 text-xl font-black text-black hover:text-gray-600 transition-colors"
+                className="absolute top-5 left-5 w-9 h-9 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 transition-colors text-black"
             >
-                &lt;
+                <FaArrowLeft className="w-4 h-4" />
             </button>
 
-            <h2 className="text-2xl font-bold text-black text-center mb-6">
+            <Title level={2} className="!text-2xl !font-bold !text-black !text-center !mt-0 !mb-6">
                 Đăng nhập
-            </h2>
+            </Title>
 
-            <form onSubmit={handleLogin} className="flex flex-col gap-4">
-                <input
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    type="email"
-                    placeholder="Nhập email"
-                    className="w-full p-4 rounded-xl bg-[#C7D2FE] text-blue-900 font-semibold placeholder-blue-500/70 outline-none focus:ring-2 focus:ring-blue-600"
-                />
+            <Form onFinish={handleLogin} className="flex flex-col gap-4">
+                <Form.Item className="!mb-0">
+                    <Input
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        type="email"
+                        placeholder="Nhập email"
+                        size="large"
+                        className="w-full !p-4 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"
+                    />
+                </Form.Item>
 
-                <input
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    type="password"
-                    placeholder="Nhập mật khẩu"
-                    className="w-full p-4 rounded-xl bg-[#C7D2FE] text-blue-900 font-semibold placeholder-blue-500/70 outline-none focus:ring-2 focus:ring-blue-600"
-                />
+                <Form.Item className="!mb-0">
+                    <Input.Password
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="Nhập mật khẩu"
+                        size="large"
+                        className="w-full !p-4 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"
+                    />
+                </Form.Item>
 
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full p-4 mt-2 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                <Form.Item className="!mb-0">
+                    <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={loading}
+                        className="w-full !p-6 !rounded-xl !bg-blue-600 !text-white !font-bold !text-lg hover:!bg-blue-700 transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center border-none"
+                    >
+                        Đăng nhập
+                    </Button>
+                </Form.Item>
+            </Form>
+
+            <div className="flex justify-center mt-4 mb-6">
+                <Button
+                    type="link"
+                    onClick={() => setView("forget")}
+                    className="!text-center !text-sm !font-bold !text-black cursor-pointer hover:!underline p-0 h-auto"
                 >
-                    {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-                </button>
-            </form>
+                    Quên mật khẩu?
+                </Button>
+            </div>
 
-            <button
-                onClick={() => setView("forget")}
-                className="text-center text-sm font-bold text-black mt-4 mb-6 cursor-pointer hover:underline"
-            >
-                Quên mật khẩu?
-            </button>
-
-            <button
+            <Button
                 onClick={() => setView("register")}
-                className="w-full p-4 rounded-xl border border-blue-600 text-blue-800 font-bold hover:bg-blue-100 transition-colors"
+                size="large"
+                className="w-full !p-6 !rounded-xl !border !border-blue-600 !text-blue-800 !font-bold hover:!bg-blue-100 transition-colors flex items-center justify-center"
             >
                 Đăng ký tài khoản mới
-            </button>
+            </Button>
         </section>
     );
 };

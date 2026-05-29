@@ -28,7 +28,7 @@ const AuthBG = ({View})=>{
           <img 
             src="/vortex1.png" 
             alt="Vortex Background" 
-            className="w-full h-full object-contain mix-blend-screen opacity-120" 
+            className="w-full h-full object-contain mix-blend-screen opacity-100" 
           
           />
         </div>
