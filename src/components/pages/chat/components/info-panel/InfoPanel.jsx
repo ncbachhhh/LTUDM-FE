@@ -9,6 +9,7 @@ import EditNicknameModal from "./modals/EditNickname.jsx";
 import ChangeEmojiModal from "./modals/ChangeEmoji.jsx";
 import ConversationAPI from "../../../../../apis/conversation.api.jsx";
 import { DEFAULT_AVATAR } from "../../../../../constants/asset.constants.js";
+import { Image, ChevronRight, ArrowRight } from 'lucide-react';
 
 const { Title, Text } = Typography;
 
@@ -75,9 +76,9 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
   }
 
   return (
-    <div className="flex h-full w-full flex-col gap-3 overflow-y-auto pr-2">
+    <div className="flex h-full w-full flex-col gap-3 overflow-y-auto pr-2 ">
       {/* Ảnh đại diện và tên */}
-      <div className="flex w-full flex-col items-center bg-white p-3 text-center">
+      <div className="flex w-full flex-col items-center bg-white p-5 text-center rounded-t-2xl">
         <div className="relative mb-4">
           <img
             src={avatarUrl}
@@ -97,10 +98,10 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
       </div>
 
       {/* Các hành động nhanh */}
-      <div className="flex w-full items-center justify-center bg-white p-3">
+      <div className="flex w-full items-center justify-center bg-white p-6">
         <div className="grid w-full grid-cols-3 gap-2">
           <ActionBtn label="Tạo nhóm">
-            <FaUsers className="h-4 w-4" />
+            <FaUsers className="h-6 w-6" />
           </ActionBtn>
 
           <Tooltip title={isMuted ? "Bật thông báo" : "Tắt thông báo"} placement="bottom">
@@ -108,41 +109,66 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
               label={isMuted ? "Bật thông báo" : "Tắt thông báo"}
               onClick={handleNotificationClick}
             >
-              {isMuted ? <FaBellSlash className="h-4 w-4" /> : <FaBell className="h-4 w-4" />}
+              {isMuted ? <FaBellSlash className="h-6 w-6" /> : <FaBell className="h-4 w-4" />}
             </ActionBtn>
           </Tooltip>
 
           <ActionBtn label="Tìm kiếm" onClick={() => setCurrentView("search")}>
-            <FaSearch className="h-4 w-4" />
+            <FaSearch className="h-6 w-6" />
           </ActionBtn>
         </div>
       </div>
 
-      {/* Thống kê hội thoại */}
-      <div className="w-full bg-white p-4">
-        <Title level={5} className="!mb-3 !text-sm !font-black uppercase tracking-wide">Thống kê</Title>
-        <div className="grid grid-cols-2 gap-1">
-          {stats.map((stat) => (
-            <StatCard
-              key={stat.id || stat.label}
-              label={stat.label}
-              value={stat.value}
-              subValue={stat.subValue}
-            />
-          ))}
+{/*  ẢNH, FILE, LINK   */}
+      <div className="w-full bg-white p-6">
+        
+        {/* Mở File Manager */}
+        <div 
+          className="flex items-center justify-between cursor-pointer group mb-3"
+          onClick={() => setCurrentView("file-manager")}
+        >
+          <div className="flex items-center gap-2">
+            
+            {/* Icon Ảnh/Thư mục  */}
+            <Image className="w-6 h-6 text-gray-600" />
+            
+            <h4 className="text-base font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
+              Ảnh, file, link
+            </h4>
+          </div>
+          
+          {/* Icon Xem thêm */}
+          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+          
         </div>
 
-        <Button
-          type="text"
-          onClick={() => setCurrentView("file-manager")}
-          className="mt-2 w-full !rounded-2xl !bg-[#0033FF]/5 !text-[11px] !font-black uppercase tracking-widest !text-slate-500"
-        >
-          Xem tất cả
-        </Button>
+        {/* Danh sách hiển thị trước */}
+        <div className="flex items-center gap-2 overflow-hidden">
+          
+          {/* Ảnh ảo */}
+          {[1, 2, 3].map((item) => (
+            <img 
+              key={item}
+              src={`https://picsum.photos/seed/${item}/100/100`} 
+              alt="Ảnh preview" 
+              className="w-16 h-16 rounded-xl object-cover border border-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
+            />
+          ))}
+
+          {/* Xem thêm */}
+          <button 
+            onClick={() => setCurrentView("file-manager")}
+            className="w-16 h-16 rounded-xl bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0"
+          >
+            {/*Icon Mũi tên phải */}
+            <ArrowRight className="w-6 h-6 text-blue-500" />
+          </button>
+
+        </div>
       </div>
 
       {/* Cài đặt hội thoại */}
-      <div className="flex w-full flex-col gap-2 bg-white p-4">
+      <div className="flex w-full flex-col gap-2 bg-white p-5 rounded-b-2xl">
         <Title level={5} className="!mb-1 !text-sm !font-black uppercase tracking-wide">Cài đặt</Title>
         {settings.map((setting) => (
           <button
@@ -152,7 +178,7 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
               if (isNicknameSetting(setting)) setIsNicknameModalOpen(true);
               else if (isEmojiSetting(setting)) setIsEmojiModalOpen(true);
             }}
-            className="cursor-pointer rounded-xl bg-[#F6F8FF] py-2 px-1 text-left text-[11px] font-bold text-slate-700 hover:bg-[#EEF2FF] transition-colors"
+            className="cursor-pointer rounded-xl bg-[#F6F8FF] py-4 px-1 text-left text-[13px] font-bold text-slate-700 hover:bg-[#EEF2FF] transition-colors"
           >
             {setting}
           </button>
