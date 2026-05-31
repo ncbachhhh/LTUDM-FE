@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import ConversationAPI from "../../../apis/conversation.api.jsx";
 import { CONVERSATION_TYPE } from "../../../constants/chat.constants.js";
@@ -35,6 +35,7 @@ const ChatPage = () => {
   const [currentEmoji, setCurrentEmoji] = useState("👍");
   const [loadingConversations, setLoadingConversations] = useState(false);
 
+  const playedSoundMessageIds = useRef(new Set()); 
   const updateCurrentConversation = useCallback(
     (updatedConversation) => {
       if (!updatedConversation?.id) return;
@@ -97,6 +98,23 @@ const ChatPage = () => {
       try {
         subscription = await WebSocketAPI.subscribeConversationUpdates((updatedConversation) => {
           if (!mounted || !updatedConversation?.id) return;
+          const newMsg = updatedConversation?.latest_message || updatedConversation?.lastMessage;
+          if (newMsg&& newMsg.id) {
+            const msgId = newMsg.id;
+             // Tìm ID của người vừa nhắn
+             const senderId = newMsg?.sender_id || newMsg?.senderId;
+             const isFromOtherPerson = senderId && String(senderId) !== String(currentUserId);
+             
+             //Nếu là người khác gửi  -> CHO KÊU CHUÔNG!
+             if (isFromOtherPerson && !playedSoundMessageIds.current.has(msgId)) {
+                const currentSound = localStorage.getItem("app_notification_sound") || '/sounds/Facebook Messenger - QuickSounds.com.mp3';
+                const audio = new Audio(currentSound); 
+                audio.volume = 0.5;
+                audio.play().catch(e => console.warn("Lỗi phát âm thanh:", e));
+                playedSoundMessageIds.current.add(msgId);
+             }
+          }
+
           updateCurrentConversation(updatedConversation);
         });
       } catch (error) {

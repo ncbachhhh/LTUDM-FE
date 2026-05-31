@@ -157,14 +157,6 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
         subscription = await WebSocketAPI.subscribeConversation(conversationId, (newMessage) => {
           if (!mounted) return;
 
-          const isFromOtherPerson = String(newMessage.senderId) !== String(currentUserId);
-          
-          if (isFromOtherPerson) {
-             const audio = new Audio('/sounds/digitalstore07-new-message-alert-430414.mp3');
-             audio.volume = 0.5;
-             audio.play().catch(e => console.warn("Lỗi phát âm thanh:", e));
-          }
-
           setMessages((prev) => {
             const mapped = mapMessageToUI(newMessage, currentUserId);
             const existed = prev.some((m) => String(m.id) === String(mapped.id));
