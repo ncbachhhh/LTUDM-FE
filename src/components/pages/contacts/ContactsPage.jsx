@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Modal } from "antd";
-import { UserOutlined, TeamOutlined, UserAddOutlined, ReloadOutlined } from "@ant-design/icons";
+import {
+  UserOutlined,
+  TeamOutlined,
+  UserAddOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import ConversationAPI from "../../../apis/conversation.api.jsx";
 import FriendshipAPI from "../../../apis/friendship.api.jsx";
@@ -31,9 +36,21 @@ const getFriendFromResponse = (friendship) => {
 /* ── Tab config ──────────────────────────────────── */
 
 const TAB_CONFIG = [
-  { key: "FRIENDS", label: "Danh sách bạn bè", icon: <UserOutlined className="!text-lg" /> },
-  { key: "GROUPS", label: "Danh sách nhóm", icon: <TeamOutlined className="!text-lg" /> },
-  { key: "REQUESTS", label: "Lời mời kết bạn", icon: <UserAddOutlined className="!text-lg" /> },
+  {
+    key: "FRIENDS",
+    label: "Danh sách bạn bè",
+    icon: <UserOutlined className="!text-lg" />,
+  },
+  {
+    key: "GROUPS",
+    label: "Danh sách nhóm",
+    icon: <TeamOutlined className="!text-lg" />,
+  },
+  {
+    key: "REQUESTS",
+    label: "Lời mời kết bạn",
+    icon: <UserAddOutlined className="!text-lg" />,
+  },
 ];
 
 /* ── Component ───────────────────────────────────── */
@@ -42,7 +59,7 @@ const ContactsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const currentUserId = getCurrentUserId(user);
-  const [activeTab, setActiveTab] = useState("REQUESTS");
+  const [activeTab, setActiveTab] = useState("FRIENDS");
   const [friends, setFriends] = useState([]);
   const [groups, setGroups] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
@@ -57,25 +74,32 @@ const ContactsPage = () => {
     setLoading(true);
     setError("");
 
-    const [friendsRes, incomingRes, outgoingRes, conversationsRes] = await Promise.all([
-      FriendshipAPI.getFriends(),
-      FriendshipAPI.getIncomingRequests(),
-      FriendshipAPI.getOutgoingRequests(),
-      ConversationAPI.getMyConversations(),
-    ]);
+    const [friendsRes, incomingRes, outgoingRes, conversationsRes] =
+      await Promise.all([
+        FriendshipAPI.getFriends(),
+        FriendshipAPI.getIncomingRequests(),
+        FriendshipAPI.getOutgoingRequests(),
+        ConversationAPI.getMyConversations(),
+      ]);
 
-    setFriends((friendsRes.data || []).map(getFriendFromResponse).filter(Boolean));
+    setFriends(
+      (friendsRes.data || []).map(getFriendFromResponse).filter(Boolean),
+    );
     setGroups(
       conversationsRes.isSuccess
-        ? mapConversationsToContacts(conversationsRes.data || [], currentUserId).groups
-        : []
+        ? mapConversationsToContacts(conversationsRes.data || [], currentUserId)
+            .groups
+        : [],
     );
     setIncomingRequests(incomingRes.data || []);
     setOutgoingRequests(outgoingRes.data || []);
 
-    const failed = [friendsRes, incomingRes, outgoingRes, conversationsRes].find(
-      (res) => !res.isSuccess
-    );
+    const failed = [
+      friendsRes,
+      incomingRes,
+      outgoingRes,
+      conversationsRes,
+    ].find((res) => !res.isSuccess);
 
     if (failed) {
       setError(failed.message || "Không thể tải dữ liệu bạn bè");
@@ -98,20 +122,21 @@ const ContactsPage = () => {
       if (!userId) return;
 
       const applyPresence = (friend) =>
-          String(friend.id) === String(userId)
-            ? {
-                ...friend,
-                is_online: online,
-                isOnline: online,
-                online,
-              }
-            : friend;
+        String(friend.id) === String(userId)
+          ? {
+              ...friend,
+              is_online: online,
+              isOnline: online,
+              online,
+            }
+          : friend;
 
       setFriends((previousFriends) => previousFriends.map(applyPresence));
     };
 
     window.addEventListener("presence:update", handlePresenceUpdate);
-    return () => window.removeEventListener("presence:update", handlePresenceUpdate);
+    return () =>
+      window.removeEventListener("presence:update", handlePresenceUpdate);
   }, []);
 
   /* ── Derived state ─────────────────────────────── */
@@ -148,7 +173,9 @@ const ContactsPage = () => {
                 }`}
               >
                 {tab.icon}
-                <span className="text-[16px] flex-1 text-left">{tab.label}</span>
+                <span className="text-[16px] flex-1 text-left">
+                  {tab.label}
+                </span>
                 {tab.key === "REQUESTS" && requestCount > 0 && (
                   <Badge
                     count={requestCount}
@@ -221,7 +248,10 @@ const ContactsPage = () => {
         centered
         destroyOnHidden
         width={600}
-        styles={{ body: { padding: 0 }, content: { padding: 0, borderRadius: 24, overflow: "hidden" } }}
+        styles={{
+          body: { padding: 0 },
+          content: { padding: 0, borderRadius: 24, overflow: "hidden" },
+        }}
         closeIcon={null}
       >
         {selectedProfile && (
