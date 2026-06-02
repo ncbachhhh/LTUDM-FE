@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { FaCamera } from "react-icons/fa";
+import { Image } from "antd";
 
 export default function AvataChange({ avatarUrl, onAvatarChange }) {
   const fileInputRef = useRef(null);
@@ -13,16 +14,18 @@ export default function AvataChange({ avatarUrl, onAvatarChange }) {
   };
 
   return (
-    <div className="relative h-24 w-24 -mt-12 ml-6">
-      <img
+    <div className="relative h-24 w-24 -mt-12 ml-6 group">
+      <Image
         src={avatarUrl}
         alt="Avatar"
-        className="h-full w-full rounded-full border-4 border-white object-cover shadow-md"
+        className="h-full w-full object-cover rounded-full"
+        wrapperClassName="h-full w-full rounded-full overflow-hidden border-4 border-white shadow-md bg-white"
+        preview={{ mask: "Xem" }}
       />
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white shadow-md transition-transform hover:scale-110 active:scale-95"
+        className="absolute bottom-0 right-0 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white shadow-md transition-transform hover:scale-110 active:scale-95 border-none cursor-pointer"
         aria-label="Tải ảnh đại diện lên"
       >
         <FaCamera className="h-3.5 w-3.5" />

@@ -78,7 +78,7 @@ export default function SideNav() {
   const profileRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const activeIndex = navItems.findIndex((item) => item.path === location.pathname);
   const isSettingsActive = location.pathname === "/settings";
@@ -147,7 +147,7 @@ export default function SideNav() {
               aria-label="Menu tài khoản"
             >
               <img
-                src={DEFAULT_AVATAR}
+                src={user?.avatarUrl || user?.avatar_url || DEFAULT_AVATAR}
                 alt="Avatar người dùng"
                 className="h-full w-full rounded-full object-cover"
               />

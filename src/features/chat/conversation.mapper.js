@@ -7,7 +7,7 @@ import {
   FRIENDSHIP_STATUS,
   MESSAGE_TYPE,
 } from "../../constants/chat.constants.js";
-import { formatConversationDate, getTimestamp } from "../../utils/date-format.util.js";
+import { formatConversationTime, getTimestamp } from "../../utils/date-format.util.js";
 import { getAvatarUrl, getDisplayName, getMemberId, getOnlineStatus } from "../../utils/identity.util.js";
 
 export const getLatestMessage = (conversation) =>
@@ -106,11 +106,14 @@ export const mapConversationToContact = (conversation, currentUserId) => {
     id: conversation.id,
     conversation_id: conversation.id,
     conversationId: conversation.id,
+    userId: isGroup ? null : getMemberId(otherMember),
+    email: isGroup ? null : otherMember?.email,
+    username: isGroup ? null : otherMember?.username,
     type: conversation.type,
     name: displayName,
     avatar,
     message: getConversationPreview(conversation, currentUserId),
-    time: formatConversationDate(getConversationSortTime(conversation)),
+    time: formatConversationTime(getConversationSortTime(conversation)),
     status: isGroup ? "Nhóm chat" : isActive ? "Trực tuyến" : "Ngoại tuyến",
     isActive,
     isGroup,

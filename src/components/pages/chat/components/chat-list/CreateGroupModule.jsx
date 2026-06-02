@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import { Button } from "antd";
 import { X, Search, Users, Camera, Plus, Check } from "lucide-react";
 import { GROUP_AVATAR } from "../../../../../constants/asset.constants.js";
@@ -7,8 +7,14 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
   const [groupName, setGroupName] = useState("");
   const [memberInput, setMemberInput] = useState("");
   const [selectedMembers, setSelectedMembers] = useState([]);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const fileInputRef = useRef(null);
 
   const friendsList = useMemo(() => contacts?.people || [], [contacts?.people]);
+  const getFriendUserId = (user) => user?.userId || user?.user_id || user?.id;
 
   // Gợi ý tên khi gõ từ khóa, loại bỏ người đã được chọn
   const suggestions = useMemo(() => {
@@ -17,44 +23,61 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
     return friendsList.filter(
       (user) =>
         (user.name.toLowerCase().includes(query) || user.email?.toLowerCase().includes(query)) &&
-        !selectedMembers.find((m) => m.id === user.id)
+        !selectedMembers.find((m) => String(getFriendUserId(m)) === String(getFriendUserId(user)))
     );
   }, [friendsList, memberInput, selectedMembers]);
 
   if (!isOpen) return null;
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleAddMember = (user) => {
-    if (!selectedMembers.find((m) => m.id === user.id)) {
+    if (!selectedMembers.find((m) => String(getFriendUserId(m)) === String(getFriendUserId(user)))) {
       setSelectedMembers((prev) => [...prev, user]);
     }
     setMemberInput("");
   };
 
   const handleRemoveMember = (id) => {
-    setSelectedMembers((prev) => prev.filter((m) => m.id !== id));
+    setSelectedMembers((prev) => prev.filter((m) => String(getFriendUserId(m)) !== String(id)));
   };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && suggestions.length > 0) handleAddMember(suggestions[0]);
   };
 
-  const handleSubmit = () => {
-    if (!groupName.trim() || selectedMembers.length === 0) return;
+  const handleSubmit = async () => {
+    if (!groupName.trim() || selectedMembers.length === 0 || submitting) return;
 
-    onCreate?.({
-      id: Date.now(),
-      name: groupName.trim(),
-      msg: `Bạn đã tạo nhóm với ${selectedMembers.length} thành viên`,
-      time: "Vừa xong",
-      avatar: GROUP_AVATAR,
-      unread: false,
-      pinned: false,
-      isGroup: true,
-    });
-
-    setGroupName("");
-    setSelectedMembers([]);
-    onClose();
+    setSubmitting(true);
+    try {
+      const result = await onCreate?.(
+        groupName.trim(), 
+        selectedMembers.map(getFriendUserId).filter(Boolean), 
+        avatarFile
+      );
+      if (result && result.isSuccess) {
+        setGroupName("");
+        setSelectedMembers([]);
+        setAvatarFile(null);
+        setAvatarPreview("");
+        onClose();
+      }
+    } catch (error) {
+      console.error("CREATE GROUP SUBMIT ERROR:", error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const canSubmit = Boolean(groupName.trim() && selectedMembers.length > 0);
@@ -90,11 +113,23 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
             {/* Nút đổi ảnh nhóm */}
             <button
               type="button"
-              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C7D2FE] bg-[#F0F4FF] text-[#6366F1] transition hover:bg-[#E0E7FF]"
+              onClick={handleAvatarClick}
+              className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C7D2FE] bg-[#F0F4FF] text-[#6366F1] transition hover:bg-[#E0E7FF] overflow-hidden p-0 cursor-pointer"
               title="Thêm ảnh nhóm"
             >
-              <Camera size={18} />
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Group Preview" className="h-full w-full object-cover" />
+              ) : (
+                <Camera size={18} />
+              )}
             </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
 
             <input
               type="text"
@@ -117,7 +152,7 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
             <div className="mb-3 flex flex-wrap gap-2">
               {selectedMembers.map((member) => (
                 <div
-                  key={member.id}
+                  key={getFriendUserId(member)}
                   className="flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[13px] font-bold text-[#4F46E5]"
                 >
                   <img
@@ -127,7 +162,7 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
                   />
                   <span>{member.name}</span>
                   <button
-                    onClick={() => handleRemoveMember(member.id)}
+                    onClick={() => handleRemoveMember(getFriendUserId(member))}
                     className="ml-0.5 text-[#6366F1] hover:text-red-500 transition-colors"
                   >
                     <X size={13} />
@@ -156,7 +191,7 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
               <div className="absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl">
                 {suggestions.map((user) => (
                   <button
-                    key={user.id}
+                    key={getFriendUserId(user)}
                     type="button"
                     onClick={() => handleAddMember(user)}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#F0F4FF]"
@@ -182,10 +217,13 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
             </label>
             <div className="space-y-1.5">
               {friendsList.slice(0, 4).map((friend) => {
-                const isSelected = selectedMembers.some((m) => m.id === friend.id);
+                const friendUserId = getFriendUserId(friend);
+                const isSelected = selectedMembers.some(
+                  (m) => String(getFriendUserId(m)) === String(friendUserId)
+                );
                 return (
                   <div
-                    key={friend.id}
+                    key={friendUserId}
                     className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 transition ${
                       isSelected ? "bg-[#EEF2FF]" : "hover:bg-[#F8FAFF]"
                     }`}
@@ -196,7 +234,7 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
                     </div>
                     <button
                       onClick={() =>
-                        isSelected ? handleRemoveMember(friend.id) : handleAddMember(friend)
+                        isSelected ? handleRemoveMember(friendUserId) : handleAddMember(friend)
                       }
                       className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${
                         isSelected
@@ -225,7 +263,8 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
           <Button
             type="primary"
             size="large"
-            disabled={!canSubmit}
+            disabled={!canSubmit || submitting}
+            loading={submitting}
             onClick={handleSubmit}
             className="flex-1 !rounded-xl !bg-[#6366F1] !border-none !text-[15px] !font-bold hover:!opacity-90 disabled:!opacity-40"
           >

@@ -1,7 +1,7 @@
 import React from "react";
 import ChatActionMenu from "./ChatActionMenu";
 import { LuPin } from "react-icons/lu";
-import { formatRelativeTime } from "../../../../../utils/date-format.util";
+// formatRelativeTime removed
 
 export default function ContactItem({
   id,
@@ -47,7 +47,7 @@ export default function ContactItem({
           <h3 className="truncate text-[15px] font-bold text-black">{name}</h3>
           {/* Đưa thời gian lên đây để nó nằm bên phải tên */}
           <span className="text-[11px] font-medium text-gray-400 shrink-0">
-            {formatRelativeTime(time)}
+            {time}
           </span>
         </div>
 

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import FriendshipAPI from "../../../../../apis/friendship.api.jsx";
-import { PROFILE_AVATAR, PROFILE_COVER } from "../../../../../constants/asset.constants.js";
+import { DEFAULT_AVATAR, PROFILE_AVATAR, PROFILE_COVER } from "../../../../../constants/asset.constants.js";
 
 const getDisplayName = (user) =>
   user?.display_name || user?.displayName || user?.username || user?.email || "Người dùng";
 
-const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || PROFILE_AVATAR;
+const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || user?.avatar || DEFAULT_AVATAR;
+
+const getCoverUrl = (user) => user?.background_url || user?.backgroundUrl || user?.bg_url || user?.bgUrl || user?.cover_url || user?.coverUrl || user?.background || PROFILE_COVER;
 
 const getFriendshipStatus = (user) =>
   user?.friendship_status || user?.friendshipStatus || "NONE";
@@ -28,7 +30,7 @@ export default function UserProfileModule({
   const [loadingAction, setLoadingAction] = useState("");
   const [error, setError] = useState("");
 
-  const isModalMode = !!onBack;
+  const isModalMode = true;
 
   if (!user) return null;
 
@@ -282,7 +284,7 @@ export default function UserProfileModule({
           <div className={`relative flex flex-col ${isModalMode ? "min-h-[350px]" : "min-h-[450px]"}`}>
             <div className={isModalMode ? "h-[140px] w-full overflow-hidden bg-slate-200" : "h-[200px] w-full overflow-hidden bg-slate-200"}>
               <img
-                src={PROFILE_COVER}
+                src={getCoverUrl(user)}
                 className="h-full w-full object-cover"
                 alt=""
               />

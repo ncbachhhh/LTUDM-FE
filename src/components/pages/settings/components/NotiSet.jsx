@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Bell } from "lucide-react";
+import { Switch, Radio } from "antd";
 
 // ── COMPONENT: MÔ PHỎNG LAPTOP ──
 const LaptopGraphic = ({ type, selected, onClick }) => (
@@ -13,13 +14,6 @@ const LaptopGraphic = ({ type, selected, onClick }) => (
       )}
     </div>
     <div className={`w-[164px] h-[6px] border-[2px] border-t-0 rounded-b-md transition-all duration-300 ${selected ? "border-[#0029FF] bg-[#E0E7FF]" : "border-[#E5E7EB] bg-[#E5E7EB]"}`} />
-  </div>
-);
-
-// ── COMPONENT: NÚT GẠT SWITCH ÂM THANH ──
-const Switch = ({ checked, onChange }) => (
-  <div onClick={() => onChange(!checked)} className={`w-12 h-6 flex items-center rounded-full p-0.5 cursor-pointer transition-colors duration-300 ${checked ? "bg-[#0029FF]" : "bg-[#D1D5DB]"}`}>
-    <div className={`w-5 h-5 rounded-full bg-white transition-transform duration-300 shadow-sm ${checked ? "translate-x-6" : "translate-x-0"}`} />
   </div>
 );
 
@@ -49,17 +43,15 @@ const NotiSet = () => {
         <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex gap-12 items-center">
           <div className="flex flex-col items-center gap-4">
             <LaptopGraphic type="on" selected={notificationStatus === "on"} onClick={() => setNotificationStatus("on")} />
-            <label className="text-sm font-medium text-gray-700 flex items-center gap-2 cursor-pointer">
-              <input type="radio" checked={notificationStatus === "on"} onChange={() => setNotificationStatus("on")} className="accent-[#0029FF] w-4 h-4 cursor-pointer" />
+            <Radio checked={notificationStatus === "on"} onChange={() => setNotificationStatus("on")} className="font-semibold text-gray-700">
               Bật
-            </label>
+            </Radio>
           </div>
           <div className="flex flex-col items-center gap-4">
             <LaptopGraphic type="off" selected={notificationStatus === "off"} onClick={() => setNotificationStatus("off")} />
-            <label className="text-sm font-medium text-gray-700 flex items-center gap-2 cursor-pointer">
-              <input type="radio" checked={notificationStatus === "off"} onChange={() => setNotificationStatus("off")} className="accent-[#0029FF] w-4 h-4 cursor-pointer" />
+            <Radio checked={notificationStatus === "off"} onChange={() => setNotificationStatus("off")} className="font-semibold text-gray-700">
               Tắt
-            </label>
+            </Radio>
           </div>
         </div>
       </div>

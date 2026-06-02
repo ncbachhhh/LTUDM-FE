@@ -16,6 +16,7 @@ export default function ChatList({
   currentConvoId,
   onSelect,
   onOpenDirectConversation,
+  onCreateGroup,
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalView, setModalView] = useState("search");
@@ -61,10 +62,7 @@ export default function ChatList({
     );
   }, [contacts?.groups]);
 
-  const handleCreateGroup = (newGroup) => {
-    setGroups((prevGroups) => [{ ...newGroup, order: -1 }, ...prevGroups]);
-    setIsModalOpen(false);
-  };
+    // Mock handleCreateGroup removed
 
   const handleChatAction = (type, chatId) => {
     const updateList = (list) => {
@@ -282,7 +280,7 @@ export default function ChatList({
         <CreateGroupModule
           isOpen={isModalOpen && modalView === "createGroup"}
           onClose={handleCloseModal}
-          onCreate={handleCreateGroup}
+          onCreate={onCreateGroup}
           contacts={contacts}
         />
       </Modal>

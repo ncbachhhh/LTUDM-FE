@@ -145,6 +145,59 @@ const UserAPI = {
       return failureResponse(error, "Lỗi khi đặt lại mật khẩu.");
     }
   },
+
+  uploadAvatar: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await authorizedAxios().post(
+        `${API_BASE_URL}/users/profile/avatar`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return successResponse(response);
+    } catch (error) {
+      console.error("UPLOAD AVATAR ERROR:", error);
+      return failureResponse(error, "Tải ảnh đại diện thất bại");
+    }
+  },
+
+  uploadBackground: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await authorizedAxios().post(
+        `${API_BASE_URL}/users/profile/background`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return successResponse(response);
+    } catch (error) {
+      console.error("UPLOAD BACKGROUND ERROR:", error);
+      return failureResponse(error, "Tải ảnh nền thất bại");
+    }
+  },
+
+  updateProfile: async (data) => {
+    try {
+      const response = await authorizedAxios().patch(
+        `${API_BASE_URL}/users/profile`,
+        data
+      );
+      return successResponse(response);
+    } catch (error) {
+      console.error("UPDATE PROFILE ERROR:", error);
+      return failureResponse(error, "Cập nhật thông tin thất bại");
+    }
+  },
 };
 
 export default UserAPI;

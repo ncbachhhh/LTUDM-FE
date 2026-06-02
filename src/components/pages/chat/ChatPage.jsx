@@ -27,6 +27,7 @@ const ChatPage = () => {
   const { api } = useNotification();
   const [searchParams, setSearchParams] = useSearchParams();
   const directUserId = searchParams.get("userId");
+  const directGroupId = searchParams.get("groupId");
   const currentUserId = getCurrentUserId(user);
 
   const [contacts, setContacts] = useState(emptyContacts);
@@ -187,6 +188,66 @@ const ChatPage = () => {
     [api, currentUserId, findDirectContactByUserId, updateCurrentConversation]
   );
 
+  const handleCreateGroupConversation = useCallback(
+    async (title, memberIds, avatarFile) => {
+      // 1. Call API to create group
+      const result = await ConversationAPI.createConversation({
+        type: CONVERSATION_TYPE.group,
+        title: title,
+        member_ids: memberIds,
+      });
+
+      if (!result.isSuccess) {
+        api.error({
+          message: "Tạo nhóm thất bại",
+          description: result.message,
+          placement: "topRight",
+        });
+        return { isSuccess: false };
+      }
+
+      let newConvoData = result.data;
+      const conversationId = newConvoData.id;
+
+      // 2. Upload avatar if selected
+      if (avatarFile) {
+        const avatarResult = await ConversationAPI.uploadGroupAvatar(conversationId, avatarFile);
+        if (avatarResult.isSuccess) {
+          // Update the avatar url on newConvoData
+          newConvoData = {
+            ...newConvoData,
+            avatar_url: avatarResult.data?.avatar_url || avatarResult.data?.avatarUrl,
+            avatarUrl: avatarResult.data?.avatarUrl || avatarResult.data?.avatar_url,
+          };
+        } else {
+          api.warning({
+            message: "Tải ảnh nhóm thất bại",
+            description: avatarResult.message,
+            placement: "topRight",
+          });
+        }
+      }
+
+      // 3. Update UI contacts list & focus
+      const mappedConversation = mapConversationToContact(newConvoData, currentUserId);
+      
+      setContacts((previousContacts) =>
+        mergeConversation(previousContacts, newConvoData, currentUserId)
+      );
+
+      setCurrentConvo(mappedConversation);
+
+      api.success({
+        message: "Tạo nhóm thành công",
+        description: `Nhóm "${title}" đã được tạo!`,
+        placement: "topRight",
+      });
+
+      return { isSuccess: true };
+    },
+    [api, currentUserId]
+  );
+
   useEffect(() => {
     if (!directUserId || !currentUserId) return undefined;
 
@@ -208,6 +269,22 @@ const ChatPage = () => {
     };
   }, [currentUserId, directUserId, handleOpenDirectConversation, searchParams, setSearchParams]);
 
+  useEffect(() => {
+    if (!directGroupId || contacts.groups.length === 0) return;
+
+    const foundGroup = contacts.groups.find(
+      (group) => String(group.id) === String(directGroupId)
+    );
+
+    if (foundGroup) {
+      setCurrentConvo(foundGroup);
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("groupId");
+    setSearchParams(nextParams, { replace: true });
+  }, [directGroupId, contacts.groups, searchParams, setSearchParams]);
+
   return (
     <div className="flex h-full w-full bg-[#E8EEFB] p-4 gap-4 overflow-hidden">
       <div className="chat-list-panel h-full w-[320px] shrink-0">
@@ -217,6 +294,7 @@ const ChatPage = () => {
           currentConvoId={currentConvo?.id}
           onSelect={handleSelectContact}
           onOpenDirectConversation={handleOpenDirectConversation}
+          onCreateGroup={handleCreateGroupConversation}
         />
       </div>
 

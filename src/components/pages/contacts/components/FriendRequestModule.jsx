@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Alert, Button, Empty, Spin, Tag } from "antd";
 import { CheckOutlined, CloseOutlined, UndoOutlined } from "@ant-design/icons";
 import FriendshipAPI from "../../../../apis/friendship.api.jsx";
-import { PROFILE_AVATAR } from "../../../../constants/asset.constants.js";
+import { DEFAULT_AVATAR } from "../../../../constants/asset.constants.js";
 
 /* ── Helpers ──────────────────────────────────────── */
 
@@ -11,7 +11,7 @@ const getRequestUser = (request) => request?.user || {};
 const getDisplayName = (user) =>
   user?.display_name || user?.displayName || user?.username || user?.email || "Người dùng";
 
-const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || PROFILE_AVATAR;
+const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || user?.avatar || DEFAULT_AVATAR;
 
 const formatRequestTime = (request) => {
   const value = request?.created_at || request?.createdAt;

@@ -10,6 +10,7 @@ const API_URL = {
   UPDATE_NICKNAME: (conversationId, memberId) =>
     `${API_BASE_URL}/conversations/${conversationId}/members/${memberId}/nickname`,
   DELETE_CONVERSATION: (conversationId) => `${API_BASE_URL}/conversations/${conversationId}`,
+  UPLOAD_GROUP_AVATAR: (conversationId) => `${API_BASE_URL}/conversations/${conversationId}/avatar`,
 };
 
 const ConversationAPI = {
@@ -75,6 +76,26 @@ const ConversationAPI = {
     } catch (error) {
       console.error("DELETE CONVERSATION ERROR:", error);
       return failureResponse(error, "Xóa hội thoại thất bại");
+    }
+  },
+
+  uploadGroupAvatar: async (conversationId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await authorizedAxios().post(
+        API_URL.UPLOAD_GROUP_AVATAR(conversationId),
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return successResponse(response);
+    } catch (error) {
+      console.error("UPLOAD GROUP AVATAR ERROR:", error);
+      return failureResponse(error, "Tải ảnh đại diện nhóm thất bại");
     }
   },
 };

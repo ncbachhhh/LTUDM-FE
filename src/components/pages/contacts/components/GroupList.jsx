@@ -94,6 +94,7 @@ const GroupList = ({ groups = [] }) => {
             sortedGroups.map((group) => (
               <div
                 key={group.id}
+                onClick={() => navigate(`/chat?groupId=${group.id}`)}
                 className="flex items-center justify-between hover:bg-[#F3F6FD] p-3 rounded-xl transition-all group cursor-pointer"
               >
                 <div className="flex items-center gap-4 min-w-0">

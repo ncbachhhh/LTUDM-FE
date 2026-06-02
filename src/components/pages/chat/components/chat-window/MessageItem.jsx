@@ -8,7 +8,7 @@ import {
   FaUndo,
   FaEllipsisH,
 } from "react-icons/fa";
-import { formatRelativeTime } from "../../../../../utils/date-format.util";
+import { formatMessageTimeFull } from "../../../../../utils/date-format.util";
 
 const getAttachmentUrl = (attachment, fallbackText = "") => {
   if (!attachment) return fallbackText || "";
@@ -118,6 +118,20 @@ function ImageMessage({ src, alt, onContentLoad }) {
   );
 }
 
+function getBubbleCornersClass(isOwn, isFirst, isLast) {
+  if (isOwn) {
+    if (isFirst && isLast) return "rounded-br-none";
+    if (isFirst) return "rounded-br-none";
+    if (isLast) return "rounded-tr-none";
+    return "rounded-tr-none rounded-br-none";
+  } else {
+    if (isFirst && isLast) return "rounded-bl-none";
+    if (isFirst) return "rounded-bl-none";
+    if (isLast) return "rounded-tl-none";
+    return "rounded-tl-none rounded-bl-none";
+  }
+}
+
 export default function MessageItem({
   id,
   text,
@@ -125,6 +139,12 @@ export default function MessageItem({
   attachment,
   isOwn,
   avatar,
+  showAvatar = true,
+  senderName,
+  showSenderName = false,
+  isFirst = true,
+  isLast = true,
+  isFirstOfList = false,
   time,
   isReply,
   replyText,
@@ -197,24 +217,36 @@ export default function MessageItem({
         },
       ].filter(Boolean);
 
+  const spacingClass = isFirstOfList ? "mt-0" : isFirst ? "mt-5" : "mt-[5px]";
+
   return (
     <div
       id={`message-${id}`}
-      className={`group flex w-full mb-2 ${isOwn ? "flex-row-reverse" : "flex-row"}`}
+      className={`group flex w-full ${spacingClass} ${isOwn ? "flex-row-reverse" : "flex-row"}`}
     >
       {!isOwn && (
         <div className="mr-2 flex-shrink-0 self-end">
-          <img
-            src={avatar || DEFAULT_AVATAR}
-            className="h-9 w-9 rounded-full border border-gray-100 object-cover shadow-sm"
-            alt=""
-          />
+          {showAvatar ? (
+            <img
+              src={avatar || DEFAULT_AVATAR}
+              className="h-9 w-9 rounded-full border border-gray-100 object-cover shadow-sm"
+              alt=""
+            />
+          ) : (
+            <div className="h-9 w-9" />
+          )}
         </div>
       )}
 
       <div
         className={`flex max-w-[75%] flex-col ${isOwn ? "items-end" : "items-start"}`}
       >
+        {showSenderName && senderName && (
+          <span className="mb-1 pl-2 text-[11px] font-bold text-gray-500">
+            {senderName}
+          </span>
+        )}
+
         {isReply && (
           <div className="mb-[-10px] flex origin-bottom-right scale-95 flex-col opacity-60">
             <div className="rounded-t-2xl border-l-4 border-blue-400 bg-gray-100 px-3 py-2 pb-4 text-[13px] italic text-gray-500">
@@ -251,11 +283,17 @@ export default function MessageItem({
             ) : (
               // <--- SỬA: Đóng gói toàn bộ nội dung tin nhắn vào 1 khối logic chuẩn
               <div
-                className={`relative break-words rounded-[20px] shadow-sm ${
-                  isImage || isStandaloneEmoji
+                className={`relative break-words ${
+                  isStandaloneEmoji
+                    ? "px-1 py-1"
+                    : isImage
                     ? ""
-                    : "px-4 py-2 text-[15px] leading-snug"
-                } ${isOwn ? "rounded-br-none bg-[#0084FF] text-white" : "rounded-bl-none bg-[#F0F2F5] text-[#050505]"}`}
+                    : `rounded-[20px] shadow-sm px-4 py-2 text-[15px] leading-snug ${
+                        isOwn
+                          ? `${getBubbleCornersClass(true, isFirst, isLast)} bg-[#0084FF] text-white`
+                          : `${getBubbleCornersClass(false, isFirst, isLast)} bg-[#F0F2F5] text-[#050505]`
+                      }`
+                }`}
               >
                 {isImage ? (
                   <ImageMessage
@@ -307,7 +345,7 @@ export default function MessageItem({
 
         {time && (
           <span className="mt-1 px-2 text-[10px] font-semibold text-gray-400 uppercase tracking-tight">
-            {formatRelativeTime(time)}
+            {formatMessageTimeFull(time)}
           </span>
         )}
       </div>

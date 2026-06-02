@@ -258,6 +258,7 @@ const ChatWindowStorages = ({ user, onChanged }) => {
           <MessageList
             messages={messages}
             avatar={user.avatar}
+            members={[user]}
             onContentLoad={handleMessageContentLoad}
           />
         ) : (

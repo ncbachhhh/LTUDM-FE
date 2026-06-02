@@ -528,6 +528,8 @@ export default function ChatWindow({
           <MessageList
             messages={messages}
             avatar={data.avatar}
+            members={data.members}
+            isGroup={data.isGroup}
             onContentLoad={handleMessageContentLoad}
             onReply={(msg) => {
               console.log("REPLY MESSAGE:", msg);

@@ -2,14 +2,14 @@ import { useMemo, useState } from "react";
 import { Badge, Dropdown, Empty, Input, Spin } from "antd";
 import { DownOutlined, MessageOutlined, SearchOutlined, SortAscendingOutlined, UserOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { PROFILE_AVATAR } from "../../../../constants/asset.constants.js";
+import { DEFAULT_AVATAR } from "../../../../constants/asset.constants.js";
 
 /* ── Helpers ──────────────────────────────────────── */
 
 const getDisplayName = (user) =>
   user?.display_name || user?.displayName || user?.username || user?.email || "Người dùng";
 
-const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || PROFILE_AVATAR;
+const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || user?.avatar || DEFAULT_AVATAR;
 
 const isOnline = (user) => Boolean(user?.is_online || user?.isOnline || user?.online);
 

@@ -1,11 +1,6 @@
 import React, { useState } from "react";
 import { AtSign, Eye, Shield } from "lucide-react"; // Thêm Icon Shield
-
-const Switch = ({ checked, onChange }) => (
-  <div onClick={() => onChange(!checked)} className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300 ${checked ? "bg-[#0033FF]" : "bg-gray-200"}`}>
-    <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm ${checked ? "translate-x-6" : "translate-x-0"}`} />
-  </div>
-);
+import { Switch, Select } from "antd";
 
 const PrivacySet = () => {
   const [showBirthday, setShowBirthday] = useState("full");
@@ -31,10 +26,15 @@ const PrivacySet = () => {
         <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between py-2">
             <span className="font-medium text-gray-700">Hiện ngày sinh</span>
-            <select value={showBirthday} onChange={(e) => setShowBirthday(e.target.value)} className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer">
-              <option value="full">Hiện đầy đủ ngày, tháng, năm</option>
-              <option value="hide">Ẩn ngày sinh</option>
-            </select>
+            <Select 
+              value={showBirthday} 
+              onChange={setShowBirthday} 
+              style={{ width: 220 }}
+              options={[
+                { value: "full", label: "Hiện đầy đủ ngày, tháng, năm" },
+                { value: "hide", label: "Ẩn ngày sinh" }
+              ]} 
+            />
           </div>
           <div className="flex items-center justify-between py-3">
             <span className="font-medium text-gray-700">Hiển thị trạng thái truy cập</span>

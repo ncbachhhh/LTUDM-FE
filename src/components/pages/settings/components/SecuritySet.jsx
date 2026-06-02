@@ -1,16 +1,10 @@
 import React, { useState } from "react";
-import { Eye, EyeOff, Smartphone, Trash2, KeyRound } from "lucide-react";
-
-const Switch = ({ checked, onChange }) => (
-  <div onClick={() => onChange(!checked)} className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-300 ${checked ? "bg-[#0033FF]" : "bg-gray-200"}`}>
-    <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm ${checked ? "translate-x-6" : "translate-x-0"}`} />
-  </div>
-);
+import { Smartphone, Trash2, KeyRound } from "lucide-react";
+import { Switch, Input, Modal, message } from "antd";
 
 const SecuritySet = () => {
   const [twoFactor, setTwoFactor] = useState(false);
   const [isChangingPass, setIsChangingPass] = useState(false);
-  const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
   const [passData, setPassData] = useState({ current: "", new: "", confirm: "" });
   const [error, setError] = useState(""); 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -22,7 +16,7 @@ const SecuritySet = () => {
     
     setError("");
     setIsChangingPass(false);
-    alert("Đổi mật khẩu thành công!");
+    message.success("Đổi mật khẩu thành công!");
     setPassData({ current: "", new: "", confirm: "" }); 
   };
 
@@ -45,7 +39,7 @@ const SecuritySet = () => {
             <div className="flex items-center justify-between px-1">
               <span className="font-medium text-gray-700">Quản lý mật khẩu</span>
               {!isChangingPass && (
-                <button onClick={() => setIsChangingPass(true)} className="text-sm text-[#0033FF] font-semibold hover:underline">
+                <button onClick={() => setIsChangingPass(true)} className="text-sm text-[#0033FF] font-semibold hover:underline bg-transparent border-none cursor-pointer">
                   Đổi mật khẩu
                 </button>
               )}
@@ -53,24 +47,30 @@ const SecuritySet = () => {
 
             {isChangingPass && (
               <div className="flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="relative">
-                  <input type={showPassword.current ? "text" : "password"} placeholder="Mật khẩu hiện tại" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-gray-300 text-sm" onChange={(e) => setPassData({...passData, current: e.target.value})}/>
-                  <button onClick={() => setShowPassword({...showPassword, current: !showPassword.current})} className="absolute right-4 top-3 text-gray-400">{showPassword.current ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
-                </div>
-                <div className="relative">
-                  <input type={showPassword.new ? "text" : "password"} placeholder="Mật khẩu mới" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-gray-300 text-sm" onChange={(e) => setPassData({...passData, new: e.target.value})}/>
-                  <button onClick={() => setShowPassword({...showPassword, new: !showPassword.new})} className="absolute right-4 top-3 text-gray-400">{showPassword.new ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
-                </div>
-                <div className="relative">
-                  <input type={showPassword.confirm ? "text" : "password"} placeholder="Xác nhận mật khẩu" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:ring-1 focus:ring-gray-300 text-sm" onChange={(e) => setPassData({...passData, confirm: e.target.value})}/>
-                  <button onClick={() => setShowPassword({...showPassword, confirm: !showPassword.confirm})} className="absolute right-4 top-3 text-gray-400">{showPassword.confirm ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
-                </div>
+                <Input.Password 
+                  placeholder="Mật khẩu hiện tại" 
+                  value={passData.current}
+                  onChange={(e) => setPassData({...passData, current: e.target.value})}
+                  className="rounded-xl py-2"
+                />
+                <Input.Password 
+                  placeholder="Mật khẩu mới" 
+                  value={passData.new}
+                  onChange={(e) => setPassData({...passData, new: e.target.value})}
+                  className="rounded-xl py-2"
+                />
+                <Input.Password 
+                  placeholder="Xác nhận mật khẩu" 
+                  value={passData.confirm}
+                  onChange={(e) => setPassData({...passData, confirm: e.target.value})}
+                  className="rounded-xl py-2"
+                />
                 
                 {error && <p className="text-red-500 text-xs px-1">{error}</p>}
 
                 <div className="flex gap-3 mt-1">
-                  <button onClick={() => { setIsChangingPass(false); setError(""); }} className="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 font-semibold text-gray-700 text-sm">Hủy</button>
-                  <button onClick={handleSavePassword} className="px-5 py-2 rounded-xl bg-[#0033FF] hover:bg-blue-700 font-semibold text-white text-sm">Lưu</button>
+                  <button onClick={() => { setIsChangingPass(false); setError(""); }} className="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 font-semibold text-gray-700 text-sm border-none cursor-pointer">Hủy</button>
+                  <button onClick={handleSavePassword} className="px-5 py-2 rounded-xl bg-[#0033FF] hover:bg-blue-700 font-semibold text-white text-sm border-none cursor-pointer">Lưu</button>
                 </div>
               </div>
             )}
@@ -108,17 +108,22 @@ const SecuritySet = () => {
       </div>
 
       {/* Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-3xl shadow-xl w-[320px] animate-in zoom-in-95 duration-200">
-            <p className="text-gray-900 font-semibold text-center mb-6">Bạn có chắc muốn xóa tài khoản ?</p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-2.5 rounded-xl bg-gray-100 font-semibold text-gray-700 hover:bg-gray-200">Hủy</button>
-              <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-2.5 rounded-xl bg-red-500 font-semibold text-white hover:bg-red-600">Đồng ý</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        title="Xác nhận xóa tài khoản"
+        open={showDeleteModal}
+        onOk={() => {
+          setShowDeleteModal(false);
+          message.success("Đã gửi yêu cầu xóa tài khoản!");
+        }}
+        onCancel={() => setShowDeleteModal(false)}
+        okText="Đồng ý"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true }}
+      >
+        <p className="py-4 text-gray-600 font-medium">
+          Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác và toàn bộ dữ liệu của bạn sẽ bị xóa.
+        </p>
+      </Modal>
     </div>
   );
 };
