@@ -10,6 +10,7 @@ import ChangeEmojiModal from "./modals/ChangeEmoji.jsx";
 import ConversationAPI from "../../../../../apis/conversation.api.jsx";
 import { DEFAULT_AVATAR } from "../../../../../constants/asset.constants.js";
 import { Image, ChevronRight, ArrowRight } from 'lucide-react';
+import { useSound } from "../../../../../contexts/sound.jsx";
 
 const { Title, Text } = Typography;
 
@@ -24,10 +25,10 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
   const [conversationInfo, setConversationInfo] = useState(null);
   const [loadingInfo, setLoadingInfo] = useState(false);
   const [isMuteModalOpen, setIsMuteModalOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState("default");
+  const { isGlobalMuted, muteSound, unmuteSound } = useSound();
 
   const conversationId = data?.conversation_id || data?.conversationId || data?.id;
 
@@ -61,8 +62,12 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
   const members = info.members || data?.members || [];
 
   const handleNotificationClick = () => {
-    if (isMuted) setIsMuted(false);
-    else setIsMuteModalOpen(true);
+    if (isGlobalMuted) {
+      unmuteSound(); // Nếu đang tắt -> Bật lại luôn
+    } 
+    else {
+      setIsMuteModalOpen(true); // Nếu đang bật -> Hiện Modal chọn giờ tắt
+    }
   };
 
   // Hiện trang tìm kiếm trong hội thoại
@@ -104,12 +109,12 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
             <FaUsers className="h-6 w-6" />
           </ActionBtn>
 
-          <Tooltip title={isMuted ? "Bật thông báo" : "Tắt thông báo"} placement="bottom">
+          <Tooltip title={isGlobalMuted ? "Bật thông báo" : "Tắt thông báo"} placement="bottom">
             <ActionBtn
-              label={isMuted ? "Bật thông báo" : "Tắt thông báo"}
+              label={isGlobalMuted ? "Bật thông báo" : "Tắt thông báo"}
               onClick={handleNotificationClick}
             >
-              {isMuted ? <FaBellSlash className="h-6 w-6" /> : <FaBell className="h-4 w-4" />}
+              {isGlobalMuted ? <FaBellSlash className="h-6 w-6" /> : <FaBell className="h-4 w-4" />}
             </ActionBtn>
           </Tooltip>
 
@@ -189,7 +194,9 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated }
       <MuteNotificationModal
         isOpen={isMuteModalOpen}
         onClose={() => setIsMuteModalOpen(false)}
-        onConfirm={() => setIsMuted(true)}
+        onConfirm={(optionId) => {
+           muteSound(optionId);
+        }}
       />
 
       <EditNicknameModal
