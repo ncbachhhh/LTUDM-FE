@@ -5,7 +5,8 @@ import ChatPage from "./components/pages/chat/ChatPage.jsx";
 import ContactsPage from "./components/pages/contacts/ContactsPage";
 import StoragesPage from "./components/pages/storages/StoragesPage.jsx";
 import { SoundProvider } from "./contexts/sound.jsx"; 
-
+import ProfilePage from "./components/pages/profile/ProfilePage.jsx"; // Đã có trong cây thư mục
+import SettingsPage from "./components/pages/settings/SettingPage.jsx";
 
 function App() {
   return (
@@ -17,10 +18,10 @@ function App() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/storages" element={<StoragesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </SoundProvider>
-    
   );
 }
 

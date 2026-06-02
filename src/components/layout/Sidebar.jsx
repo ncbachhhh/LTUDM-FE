@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { FaArchive, FaCog, FaRegUserCircle, FaSignOutAlt } from "react-icons/fa";
+import { FaArchive, FaCog, FaRegUserCircle, FaSignOutAlt, FaUserAlt } from "react-icons/fa";
 import { BsChatDotsFill } from "react-icons/bs";
 import { useLocation, useNavigate } from "react-router-dom";
 import { DEFAULT_AVATAR } from "../../constants/asset.constants.js";
 import { useAuth } from "../../contexts/auth.context.jsx";
+import ProfilePage from "../pages/profile/ProfilePage.jsx";
 
 const navItems = [
   {
@@ -36,6 +37,8 @@ function ActiveCurve() {
 }
 
 function ActiveIndicator({ index }) {
+  if (index < 0) return null;
+
   return (
     <div
       className="absolute right-0 top-0 h-16 w-[calc(100%-12px)] rounded-l-[29px] bg-[#E8EEFB] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
@@ -70,20 +73,20 @@ function NavItem({ item, active, onClick }) {
 }
 
 export default function SideNav() {
-  const [showSettings, setShowSettings] = useState(false);
-  const settingsRef = useRef(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
-  const activeIndex = Math.max(
-    navItems.findIndex((item) => item.path === location.pathname),
-    0
-  );
+
+  const activeIndex = navItems.findIndex((item) => item.path === location.pathname);
+  const isSettingsActive = location.pathname === "/settings";
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (settingsRef.current && !settingsRef.current.contains(event.target)) {
-        setShowSettings(false);
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
       }
     };
 
@@ -92,55 +95,99 @@ export default function SideNav() {
   }, []);
 
   return (
-    <div className="relative flex h-full w-20 shrink-0 flex-col items-end bg-[#0029FF] py-6">
-      <div className="relative flex w-full flex-1 flex-col items-end gap-4">
-        <ActiveIndicator index={activeIndex} />
+    <>
+      <div className="relative flex h-full w-20 shrink-0 flex-col items-end bg-[#0029FF] py-6">
+        {/* Khu vực 3 nút chính phía trên */}
+        <div className="relative flex w-full flex-1 flex-col items-end gap-4">
+          <ActiveIndicator index={activeIndex} />
 
-        {navItems.map((item) => (
-          <NavItem
-            key={item.path}
-            item={item}
-            active={location.pathname === item.path}
-            onClick={() => navigate(item.path)}
-          />
-        ))}
-      </div>
-
-      <div className="mt-8 flex w-full flex-col items-center gap-10">
-        <div className="relative" ref={settingsRef}>
-          <button
-            type="button"
-            onClick={() => setShowSettings(!showSettings)}
-            className="flex h-8 w-8 items-center justify-center text-white opacity-80 transition-all hover:opacity-100 active:scale-95"
-            aria-label="Cài đặt"
-          >
-            <FaCog className="h-7 w-7" />
-          </button>
-
-          {showSettings && (
-            <div className="absolute bottom-0 left-[50px] z-[999] w-[180px] rounded-[16px] border border-gray-50 bg-white p-2 shadow-[0_10px_40px_rgba(0,0,0,0.15)] animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <button
-                type="button"
-                onClick={async () => {
-                  await logout();
-                  setShowSettings(false);
-                  navigate("/");
-                }}
-                className="flex w-full items-center gap-3 rounded-[12px] px-4 py-3 text-left text-[15px] font-bold text-red-500 transition-colors hover:bg-red-50"
-              >
-                <FaSignOutAlt className="h-5 w-5" />
-                Đăng xuất
-              </button>
-            </div>
-          )}
+          {navItems.map((item) => (
+            <NavItem
+              key={item.path}
+              item={item}
+              active={location.pathname === item.path}
+              onClick={() => navigate(item.path)}
+            />
+          ))}
         </div>
 
-        <img
-          src={DEFAULT_AVATAR}
-          alt="Avatar người dùng"
-          className="h-10 w-10 rounded-full border-2 border-white/20 object-cover shadow-md"
-        />
+        {/* Khu vực Đáy: Giữ nguyên gap-10 chuẩn chỉnh của bạn */}
+        <div className="mt-8 flex w-full flex-col items-center gap-10" ref={profileRef}>
+          
+          {/* Nút Cài đặt: Giữ nguyên h-8 w-8 tuyệt đối */}
+          <div className="relative flex h-8 w-full items-center justify-center">
+            {/* Vùng thụt lề nền trượt mượt mà cho Cài đặt ăn khớp sang mép phải */}
+            {isSettingsActive && (
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 h-16 w-[calc(100%-12px)] rounded-l-[29px] bg-[#E8EEFB] z-0 animate-in fade-in duration-200">
+                <ActiveCurve />
+              </div>
+            )}
+            
+            <button
+              type="button"
+              onClick={() => {
+                setShowProfileMenu(false); // Đóng menu avatar nếu đang mở
+                navigate("/settings");
+              }}
+              className={`relative z-10 flex h-8 w-8 items-center justify-center transition-all active:scale-95 ${
+                isSettingsActive ? "text-[#0029FF] opacity-100" : "text-white opacity-80 hover:opacity-100"
+              }`}
+              aria-label="Cài đặt"
+            >
+              <FaCog className="h-7 w-7" />
+            </button>
+          </div>
+
+          {/* Avatar người dùng giữ nguyên */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/20 object-cover shadow-md transition-all hover:scale-105 active:scale-95"
+              aria-label="Menu tài khoản"
+            >
+              <img
+                src={DEFAULT_AVATAR}
+                alt="Avatar người dùng"
+                className="h-full w-full rounded-full object-cover"
+              />
+            </button>
+
+            {/* Menu Popup chuẩn tỷ lệ w-210px của bạn */}
+            {showProfileMenu && (
+              <div className="absolute bottom-2 left-[55px] z-[999] w-[210px] rounded-[16px] border border-gray-100 bg-white p-2 shadow-[0_10px_40px_rgba(0,0,0,0.15)] animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    setIsProfileOpen(true); // Mở Modal Profile lớp phủ anime
+                  }}
+                  className="flex w-full items-center gap-3 rounded-[12px] px-4 py-3 text-left text-[15px] font-bold text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <FaUserAlt className="h-4 w-4 text-gray-500" />
+                  Tài khoản
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await logout();
+                    setShowProfileMenu(false);
+                    navigate("/");
+                  }}
+                  className="flex w-full items-center gap-3 rounded-[12px] px-4 py-3 text-left text-[15px] font-bold text-red-500 transition-colors hover:bg-red-50"
+                >
+                  <FaSignOutAlt className="h-4 w-4" />
+                  Đăng xuất
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+
+      {/* Lớp phủ thông tin cá nhân dạng Modal hoành tráng */}
+      <ProfilePage isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+    </>
   );
 }
