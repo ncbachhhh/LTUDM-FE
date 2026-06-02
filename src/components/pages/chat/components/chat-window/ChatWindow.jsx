@@ -1,9 +1,12 @@
 import { Spin, Tooltip, Typography } from "antd";
-import { FaInfoCircle } from "react-icons/fa";
+import { FaInfoCircle, FaThumbtack, FaChevronRight } from "react-icons/fa";
 import MessageAPI from "../../../../../apis/message.api.jsx";
 import WebSocketAPI from "../../../../../apis/websocket.api.jsx";
 import { useAuth } from "../../../../../contexts/auth.context.jsx";
-import { mapMessageToUI, sortMessagesByCreatedAt } from "../../../../../features/chat/message.mapper.js";
+import {
+  mapMessageToUI,
+  sortMessagesByCreatedAt,
+} from "../../../../../features/chat/message.mapper.js";
 import { getCurrentUserId } from "../../../../../utils/identity.util.js";
 import ChatInput from "./ChatInput.jsx";
 import MessageList from "./MessageList.jsx";
@@ -11,9 +14,15 @@ import { useEffect, useRef, useState } from "react";
 
 const { Text } = Typography;
 
-export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmoji }) {
+export default function ChatWindow({
+  data,
+  isInfoOpen,
+  setIsInfoOpen,
+  currentEmoji,
+}) {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
+  const [replyingMessage, setReplyingMessage] = useState(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [socketStatus, setSocketStatus] = useState("Đang kết nối...");
   const [errorMessage, setErrorMessage] = useState("");
@@ -24,15 +33,46 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const lastMessageIdRef = useRef(null);
+  const pendingReplyRef = useRef(null);
 
   const currentUserId = getCurrentUserId(user);
-  const conversationId = data?.conversation_id || data?.conversationId || data?.id;
+  const conversationId =
+    data?.conversation_id || data?.conversationId || data?.id;
+
+  const pinnedMessages = messages.filter((msg) => msg.isPinned);
+  const latestPinnedMessage = pinnedMessages[pinnedMessages.length - 1];
+
+  const getMessagePreview = (message) => {
+    if (!message) return "";
+
+    if (message.isRecalled || message.isDeletedForMe)
+      return "Bạn đã xóa một tin nhắn";
+    if (message.type === "IMAGE") return "Hình ảnh";
+    if (message.type === "FILE") return "Tệp đính kèm";
+
+    return message.text || message.content || "";
+  };
+
+  const handleJumpToMessage = (messageId) => {
+    const element = document.getElementById(`message-${messageId}`);
+
+    if (element) {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  };
 
   // Kiểm tra xem người dùng có thể nhắn tin không
   const canMessage =
-    data?.canMessage !== false && !data?.blockedByCurrentUser && !data?.currentUserBlocked;
+    data?.canMessage !== false &&
+    !data?.blockedByCurrentUser &&
+    !data?.currentUserBlocked;
   const disabledMessage = "Hiện không thể liên lạc";
-  const displayStatus = canMessage ? data?.status || socketStatus : disabledMessage;
+  const displayStatus = canMessage
+    ? data?.status || socketStatus
+    : disabledMessage;
   const isOnline = displayStatus === "Trực tuyến";
 
   const scrollToBottom = (behavior = "auto") => {
@@ -55,7 +95,6 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
     }
   };
 
-
   // Tải danh sách tin nhắn khi đổi hội thoại (Trang 0)
   useEffect(() => {
     let mounted = true;
@@ -70,12 +109,16 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
       setHasMore(true);
       lastMessageIdRef.current = null;
 
-      const result = await MessageAPI.getMessagesByConversation(conversationId, 0, 20);
+      const result = await MessageAPI.getMessagesByConversation(
+        conversationId,
+        0,
+        20,
+      );
       if (!mounted) return;
 
       if (result.isSuccess) {
         const mapped = sortMessagesByCreatedAt(
-          result.data.map((msg) => mapMessageToUI(msg, currentUserId))
+          result.data.map((msg) => mapMessageToUI(msg, currentUserId)),
         );
         setMessages(mapped);
         if (result.data.length < 20) {
@@ -93,7 +136,9 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
     };
 
     fetchMessages();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [conversationId, currentUserId]);
 
   // Hàm tải thêm tin nhắn cũ
@@ -105,7 +150,11 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
     const oldScrollHeight = messageContainerRef.current?.scrollHeight || 0;
     const oldScrollTop = messageContainerRef.current?.scrollTop || 0;
 
-    const result = await MessageAPI.getMessagesByConversation(conversationId, nextPage, 20);
+    const result = await MessageAPI.getMessagesByConversation(
+      conversationId,
+      nextPage,
+      20,
+    );
 
     if (result.isSuccess) {
       if (result.data.length < 20) {
@@ -113,10 +162,12 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
       }
       setPage(nextPage);
 
-      const newMapped = result.data.map((msg) => mapMessageToUI(msg, currentUserId));
+      const newMapped = result.data.map((msg) =>
+        mapMessageToUI(msg, currentUserId),
+      );
       setMessages((prev) => {
-        const existingIds = new Set(newMapped.map(m => String(m.id)));
-        const filteredPrev = prev.filter(m => !existingIds.has(String(m.id)));
+        const existingIds = new Set(newMapped.map((m) => String(m.id)));
+        const filteredPrev = prev.filter((m) => !existingIds.has(String(m.id)));
         return sortMessagesByCreatedAt([...newMapped, ...filteredPrev]);
       });
 
@@ -124,7 +175,8 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
       requestAnimationFrame(() => {
         if (messageContainerRef.current) {
           const newScrollHeight = messageContainerRef.current.scrollHeight;
-          messageContainerRef.current.scrollTop = newScrollHeight - oldScrollHeight + oldScrollTop;
+          messageContainerRef.current.scrollTop =
+            newScrollHeight - oldScrollHeight + oldScrollTop;
         }
       });
     }
@@ -154,16 +206,58 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
       try {
         setSocketStatus("Đang kết nối...");
 
-        subscription = await WebSocketAPI.subscribeConversation(conversationId, (newMessage) => {
-          if (!mounted) return;
+        subscription = await WebSocketAPI.subscribeConversation(
+          conversationId,
+          (newMessage) => {
+            if (!mounted) return;
 
-          setMessages((prev) => {
-            const mapped = mapMessageToUI(newMessage, currentUserId);
-            const existed = prev.some((m) => String(m.id) === String(mapped.id));
-            if (existed) return prev;
-            return sortMessagesByCreatedAt([...prev, mapped]);
-          });
-        });
+            setMessages((prev) => {
+              let mapped = mapMessageToUI(newMessage, currentUserId);
+
+              const pendingReply = pendingReplyRef.current;
+              const mappedContent = mapped.text || mapped.content || "";
+              const pendingContent = pendingReply?.content || "";
+
+              const isPendingReplyMessage =
+                pendingReply &&
+                mapped.isOwn &&
+                mappedContent.trim() === pendingContent.trim();
+
+              if (isPendingReplyMessage) {
+                const repliedMessage = pendingReply.message;
+
+                mapped = {
+                  ...mapped,
+                  isReply: true,
+                  replyText:
+                    repliedMessage?.text ||
+                    repliedMessage?.content ||
+                    "Tin nhắn",
+                  replySenderName: repliedMessage?.senderName || "Người dùng",
+                };
+
+                pendingReplyRef.current = null;
+              }
+              const existed = prev.some(
+                (m) => String(m.id) === String(mapped.id),
+              );
+              if (existed) {
+                return sortMessagesByCreatedAt(
+                  prev.map((m) =>
+                    String(m.id) === String(mapped.id)
+                      ? {
+                          ...m,
+                          ...mapped,
+                        }
+                      : m,
+                  ),
+                );
+              }
+
+              return sortMessagesByCreatedAt([...prev, mapped]);
+            });
+          },
+        );
 
         if (mounted) setSocketStatus("Đã kết nối");
       } catch (error) {
@@ -199,15 +293,139 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
     }
   }, [messages, loadingMessages]);
 
-  const handleSendMessage = async (content) => {
-    const result = await WebSocketAPI.sendTextMessage(conversationId, content);
-    if (!result.isSuccess) setSocketStatus("Mất kết nối");
+  const handleSendMessage = async (content, parentId) => {
+    pendingReplyRef.current = parentId
+      ? {
+          content,
+          message: replyingMessage,
+        }
+      : null;
+    const result = await WebSocketAPI.sendTextMessage(
+      conversationId,
+      content,
+      parentId,
+    );
+    if (!result.isSuccess) {
+      pendingReplyRef.current = null;
+      setSocketStatus("Mất kết nối");
+    }
+
     return result;
   };
 
   const handleSendFileMessage = async (file, type) => {
-    if (!conversationId) return { isSuccess: false, message: "Chưa chọn hội thoại" };
+    if (!conversationId)
+      return { isSuccess: false, message: "Chưa chọn hội thoại" };
     return MessageAPI.sendFileMessage({ conversationId, file, type });
+  };
+
+  const handlePin = async (messageId) => {
+    try {
+      const currentMessage = messages.find(
+        (item) => String(item.id) === String(messageId),
+      );
+
+      if (!currentMessage) return;
+
+      const nextPinnedStatus = !currentMessage.isPinned;
+
+      // Update tạm trên FE để UI phản hồi nhanh
+      setMessages((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(messageId)
+            ? {
+                ...item,
+                isPinned: nextPinnedStatus,
+              }
+            : item,
+        ),
+      );
+
+      // Gọi BE để lưu trạng thái ghim thật
+      const result = await MessageAPI.pinMessage(messageId, nextPinnedStatus);
+
+      if (result?.isSuccess && result.data) {
+        const updatedMessage = mapMessageToUI(result.data, currentUserId);
+
+        setMessages((prev) =>
+          sortMessagesByCreatedAt(
+            prev.map((item) =>
+              String(item.id) === String(updatedMessage.id)
+                ? {
+                    ...item,
+                    ...updatedMessage,
+                  }
+                : item,
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      console.error("PIN MESSAGE ERROR:", error);
+    }
+  };
+
+  const handleRecall = async (messageId) => {
+    try {
+      if (!messageId) return;
+
+      // Update tạm trên FE
+      setMessages((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(messageId)
+            ? {
+                ...item,
+                text: "",
+                content: "",
+                isRecalled: true,
+              }
+            : item,
+        ),
+      );
+
+      // Gọi BE để thu hồi thật
+      const result = await MessageAPI.recallMessage(messageId);
+
+      if (result?.isSuccess && result.data) {
+        const updatedMessage = mapMessageToUI(result.data, currentUserId);
+
+        setMessages((prev) =>
+          sortMessagesByCreatedAt(
+            prev.map((item) =>
+              String(item.id) === String(updatedMessage.id)
+                ? {
+                    ...item,
+                    ...updatedMessage,
+                  }
+                : item,
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      console.error("RECALL MESSAGE ERROR:", error);
+    }
+  };
+
+  const handleDeleteForMe = async (messageId) => {
+    try {
+      setMessages((prev) =>
+        prev.map((item) =>
+          String(item.id) === String(messageId)
+            ? {
+                ...item,
+                text: "",
+                content: "",
+                isDeletedForMe: true,
+              }
+            : item,
+        ),
+      );
+
+      await MessageAPI.deleteMessageForMe(messageId);
+    } catch (error) {
+      console.error("DELETE MESSAGE FOR ME ERROR:", error);
+    }
   };
 
   return (
@@ -215,12 +433,22 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
       {/* Header: Thông tin người/nhóm chat */}
       <div className="flex items-center justify-between border-b p-5">
         <div className="flex items-center gap-4">
-          <img src={data.avatar} className="h-11 w-11 rounded-full object-cover" alt={data.name} />
+          <img
+            src={data.avatar}
+            className="h-11 w-11 rounded-full object-cover"
+            alt={data.name}
+          />
           <div>
-            <Text strong className="block text-base">{data.name}</Text>
+            <Text strong className="block text-base">
+              {data.name}
+            </Text>
             <Text
               className={`text-xs font-semibold ${
-                isOnline ? "!text-green-500" : canMessage ? "!text-gray-400" : "!text-red-400"
+                isOnline
+                  ? "!text-green-500"
+                  : canMessage
+                    ? "!text-gray-400"
+                    : "!text-red-400"
               }`}
             >
               {displayStatus}
@@ -229,7 +457,10 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
         </div>
 
         {/* Nút mở/đóng panel thông tin */}
-        <Tooltip title={isInfoOpen ? "Ẩn thông tin" : "Xem thông tin"} placement="left">
+        <Tooltip
+          title={isInfoOpen ? "Ẩn thông tin" : "Xem thông tin"}
+          placement="left"
+        >
           <button
             type="button"
             onClick={() => setIsInfoOpen(!isInfoOpen)}
@@ -241,6 +472,35 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
           </button>
         </Tooltip>
       </div>
+
+      {latestPinnedMessage && (
+        <button
+          type="button"
+          onClick={() => handleJumpToMessage(latestPinnedMessage.id)}
+          className="flex items-center justify-between border-b bg-yellow-50 px-5 py-3 text-left hover:bg-yellow-100 transition-colors"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
+              <FaThumbtack size={14} />
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-yellow-700">
+                Tin nhắn đã ghim
+                {pinnedMessages.length > 1
+                  ? ` · ${pinnedMessages.length} tin`
+                  : ""}
+              </p>
+
+              <p className="truncate text-sm font-medium text-gray-700">
+                {getMessagePreview(latestPinnedMessage)}
+              </p>
+            </div>
+          </div>
+
+          <FaChevronRight className="ml-3 shrink-0 text-yellow-600" size={14} />
+        </button>
+      )}
 
       {/* Khu vực tin nhắn */}
       <div
@@ -258,7 +518,10 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
             <Spin tip="Đang tải tin nhắn..." />
           </div>
         ) : errorMessage ? (
-          <Text type="danger" className="mt-10 block text-center text-sm font-semibold">
+          <Text
+            type="danger"
+            className="mt-10 block text-center text-sm font-semibold"
+          >
             {errorMessage}
           </Text>
         ) : (
@@ -266,6 +529,13 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
             messages={messages}
             avatar={data.avatar}
             onContentLoad={handleMessageContentLoad}
+            onReply={(msg) => {
+              console.log("REPLY MESSAGE:", msg);
+              setReplyingMessage(msg);
+            }} // <--- TRUYỀN CALLBACK
+            onPin={handlePin} // <--- TRUYỀN CALLBACK
+            onRecall={handleRecall} // <--- TRUYỀN CALLBACK
+            onDelete={handleDeleteForMe}
           />
         )}
       </div>
@@ -277,11 +547,15 @@ export default function ChatWindow({ data, isInfoOpen, setIsInfoOpen, currentEmo
             currentEmoji={currentEmoji}
             onSendMessage={handleSendMessage}
             onSendFileMessage={handleSendFileMessage}
+            replyingMsg={replyingMessage} // <--- TRUYỀN PROP
+            onCancelReply={() => setReplyingMessage(null)} // <--- TRUYỀN PROP
           />
         </div>
       ) : (
         <div className="border-t bg-white px-6 py-5 text-center">
-          <Text type="secondary" className="text-sm font-bold">{disabledMessage}</Text>
+          <Text type="secondary" className="text-sm font-bold">
+            {disabledMessage}
+          </Text>
         </div>
       )}
     </div>
