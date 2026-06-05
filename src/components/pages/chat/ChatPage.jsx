@@ -286,7 +286,7 @@ const ChatPage = () => {
   }, [directGroupId, contacts.groups, searchParams, setSearchParams]);
 
   return (
-    <div className="flex h-full w-full bg-[#E8EEFB] p-4 gap-4 overflow-hidden">
+    <div className="flex h-full w-full bg-[#E9ECF6] p-4 gap-4 overflow-hidden">
       <div className="chat-list-panel h-full w-[320px] shrink-0">
         <ChatList
           contacts={contacts}
@@ -320,6 +320,8 @@ const ChatPage = () => {
                   data={currentConvo}
                   onEmojiChange={(newEmoji) => setCurrentEmoji(newEmoji)}
                   onConversationUpdated={updateCurrentConversation}
+                  contacts={contacts}                           
+                  onCreateGroup={handleCreateGroupConversation} 
                 />
               </div>
             )}

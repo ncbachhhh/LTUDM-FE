@@ -31,8 +31,9 @@ export default function ChatList({
   }, [currentConvoId]);
 
   useEffect(() => {
-    setPeople((prev) =>
-      (contacts?.people || []).map((p, index) => {
+    setPeople((prev) => {
+      // 1. Map dữ liệu thô từ contacts
+      const mapped = (contacts?.people || []).map((p, index) => {
         const existing = prev.find((item) => item.id === p.id);
         return {
           ...p,
@@ -42,13 +43,20 @@ export default function ChatList({
           pinned: existing ? existing.pinned : false,
           order: index,
         };
-      })
-    );
+      });
+
+      // 2. Sắp xếp: Ai được ghim (pinned === true) nhảy lên đầu cứng luôn
+      return [...mapped].sort((a, b) => {
+        if (a.pinned !== b.pinned) return b.pinned - a.pinned;
+        return a.order - b.order;
+      });
+    });
   }, [contacts?.people]);
 
   useEffect(() => {
-    setGroups((prev) =>
-      (contacts?.groups || []).map((g, index) => {
+    setGroups((prev) => {
+      // 1. Map dữ liệu thô từ contacts
+      const mapped = (contacts?.groups || []).map((g, index) => {
         const existing = prev.find((item) => item.id === g.id);
         return {
           ...g,
@@ -58,25 +66,39 @@ export default function ChatList({
           pinned: existing ? existing.pinned : false,
           order: index,
         };
-      })
-    );
+      });
+
+      // 2. Sắp xếp: Ai được ghim (pinned === true) nhảy lên đầu cứng luôn
+      return [...mapped].sort((a, b) => {
+        if (a.pinned !== b.pinned) return b.pinned - a.pinned;
+        return a.order - b.order;
+      });
+    });
   }, [contacts?.groups]);
 
     // Mock handleCreateGroup removed
 
   const handleChatAction = (type, chatId) => {
+    // Tự động kiểm tra xem cuộc trò chuyện này thuộc loại nào để áp số lượng giới hạn ghim
+    const isPeopleChat = people.some((p) => p.id === chatId);
+    const maxPinned = isPeopleChat ? 3 : 2; 
+    const chatTypeLabel = isPeopleChat ? "hội thoại cá nhân" : "nhóm chat";
+
     const updateList = (list) => {
+      // Nếu chatId đang chọn không nằm trong mảng này thì giữ nguyên mảng, không xử lý lãng phí
+      if (!list.some((p) => p.id === chatId)) return list;
+
       switch (type) {
         case "PIN": {
           const pinnedCount = list.filter((p) => p.pinned).length;
           const target = list.find((p) => p.id === chatId);
           const isCurrentlyPinned = target?.pinned;
 
-          if (!isCurrentlyPinned && pinnedCount >= 3) {
-            // Dùng antd Modal.confirm thay cho alert() thuần
+          // Áp dụng giới hạn động (3 cho người, 2 cho nhóm)
+          if (!isCurrentlyPinned && pinnedCount >= maxPinned) {
             Modal.warning({
               title: "Không thể ghim thêm",
-              content: "Tối đa chỉ ghim được 3 hội thoại!",
+              content: `Tối đa chỉ ghim được ${maxPinned} ${chatTypeLabel}!`,
               okText: "Đồng ý",
             });
             return list;

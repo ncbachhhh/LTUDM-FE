@@ -27,7 +27,7 @@ export function SoundProvider({ children }) {
 
     try {
       // Đọc link nhạc từ LocalStorage, nếu không có thì dùng mặc định Messenger - QuickSounds.com.mp3
-      const currentSound = localStorage.getItem("app_notification_sound") || '/sounds/Messenger - QuickSounds.com.mp3';
+      const currentSound = localStorage.getItem("app_notification_sound") || '/sounds/default.mp3';
       
       const audio = new Audio(currentSound);
       audio.volume = 0.5; 

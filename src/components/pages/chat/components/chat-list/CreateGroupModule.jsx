@@ -3,10 +3,17 @@ import { Button } from "antd";
 import { X, Search, Users, Camera, Plus, Check } from "lucide-react";
 import { GROUP_AVATAR } from "../../../../../constants/asset.constants.js";
 
-export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts = { people: [] } }) {
+export default function CreateGroupModule({ 
+  isOpen, 
+  onClose, 
+  onCreate, 
+  contacts = { people: [] },
+  initialSelectedMembers = [], // Bổ sung
+  title = "Tạo nhóm chat"      // Bổ sung
+}) {
   const [groupName, setGroupName] = useState("");
   const [memberInput, setMemberInput] = useState("");
-  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [selectedMembers, setSelectedMembers] = useState(initialSelectedMembers);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -86,7 +93,7 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
     <div className="flex flex-col bg-white" style={{ maxHeight: "90vh", overflowY: "auto" }}>
       {/* ── Header ─────────────────────────────────── */}
       <div
-        className="relative flex items-center justify-center px-6 py-5 shrink-0"
+        className="relative flex items-center justify-center px-6 py-5 shrink-0 rounded-[15px]" 
         style={{ background: "linear-gradient(135deg, #0033FF 0%, #7C3AED 100%)" }}
       >
         <button
@@ -99,7 +106,7 @@ export default function CreateGroupModule({ isOpen, onClose, onCreate, contacts 
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
             <Users size={16} className="text-white" />
           </div>
-          <h2 className="text-xl font-black text-white">Tạo nhóm chat</h2>
+          <h2 className="text-xl font-black text-white">{title}</h2>
         </div>
       </div>
 

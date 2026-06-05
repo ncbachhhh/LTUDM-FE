@@ -5,7 +5,8 @@ import { LuPin, LuUserRoundX, LuEyeOff, LuBookmark, LuTrash2 } from "react-icons
 
 export default function ChatActionMenu({ isPinned, onAction }) {
   const [showMenu, setShowMenu] = useState(false);
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  // Hỗ trợ cả tọa độ top (xổ xuống) và bottom (bật lên trên)
+  const [coords, setCoords] = useState({ top: null, bottom: null, left: 0 });
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
 
@@ -16,19 +17,45 @@ export default function ChatActionMenu({ isPinned, onAction }) {
         setShowMenu(false);
       }
     };
-    if (showMenu) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    const handleScrollOrResize = () => {
+      setShowMenu(false);
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScrollOrResize, true);
+      window.addEventListener('resize', handleScrollOrResize);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
   }, [showMenu]);
 
   const handleToggle = (e) => {
     e.stopPropagation();
     if (!showMenu) {
       const rect = buttonRef.current.getBoundingClientRect();
-      // Chỉnh left lấy trung tâm của nút bấm
-      setCoords({ 
-        top: rect.bottom + window.scrollY + 8, 
-        left: rect.left + window.scrollX + (rect.width / 2) 
-      });
+      
+      // TỰ ĐỘNG PHÂN TÍCH VỊ TRÍ: 
+      // Nếu nút bấm nằm ở nửa dưới màn hình (như vùng Group), bật menu LÊN TRÊN.
+      if (rect.bottom > window.innerHeight / 2) {
+        setCoords({
+          top: null,
+          bottom: window.innerHeight - rect.top + 8, // Đẩy ngược lên trên nút bấm
+          left: rect.left + (rect.width / 2)
+        });
+      } else {
+        // Ngược lại nếu ở trên (như vùng People) thì vẫn xổ xuống dưới như cũ
+        setCoords({
+          top: rect.bottom + 8,
+          bottom: null,
+          left: rect.left + (rect.width / 2)
+        });
+      }
     }
     setShowMenu(!showMenu);
   };
@@ -57,10 +84,10 @@ export default function ChatActionMenu({ isPinned, onAction }) {
       {showMenu && createPortal(
         <div 
           ref={menuRef} 
-          // Dùng translateX(-50%) để menu nằm chính giữa tọa độ left
           style={{ 
-            position: 'absolute', 
-            top: coords.top, 
+            position: 'fixed', 
+            // Áp dụng linh hoạt top hoặc bottom tùy thuộc vị trí click
+            ...(coords.top !== null ? { top: coords.top } : { bottom: coords.bottom }),
             left: coords.left, 
             transform: 'translateX(-50%)' 
           }} 

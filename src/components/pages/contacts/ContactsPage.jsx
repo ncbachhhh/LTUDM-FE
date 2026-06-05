@@ -157,34 +157,42 @@ const ContactsPage = () => {
   const requestCount = incomingRequests.length;
 
   return (
-    <div className="flex h-full bg-[#EEF1F6] p-4 gap-4 overflow-hidden">
-      {/* ── Sidebar ──────────────────────────────── */}
-      <div className="w-[320px] flex flex-col gap-4 shrink-0 h-full">
-        <div className="bg-white rounded-[24px] flex-1 p-6 shadow-sm flex flex-col overflow-hidden">
+    <div className="flex h-full bg-[#E9ECF6] p-4 gap-4 overflow-hidden">
+      {/* ── Sidebar TRÁI: Chuẩn đét dải xanh tách biệt hộp trắng ── */}
+      <div className="w-[320px] flex flex-col gap-3 shrink-0 h-full">
+        <div className="w-full bg-[#D1DCFE] text-[#0029FF] border border-[#0029FF]/20 text-center font-black text-[14px] py-3 rounded-xl tracking-wider uppercase select-none shrink-0">
+          Danh bạ
+        </div>
+
+        <div className="bg-white rounded-[24px] flex-1 p-5 shadow-sm flex flex-col overflow-hidden">
           <nav className="space-y-3">
-            {TAB_CONFIG.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all ${
-                  activeTab === tab.key
-                    ? "bg-[#F1F4FF] text-black font-bold"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {tab.icon}
-                <span className="text-[16px] flex-1 text-left">
-                  {tab.label}
-                </span>
-                {tab.key === "REQUESTS" && requestCount > 0 && (
-                  <Badge
-                    count={requestCount}
-                    size="small"
-                    className="[&_.ant-badge-count]:!bg-[#0029FF]"
-                  />
-                )}
-              </button>
-            ))}
+            {TAB_CONFIG.map((tab) => {
+              const isActive = activeTab === tab.key;
+              
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`w-full flex items-center gap-4 px-5 py-4 cursor-pointer transition-all duration-200 rounded-2xl border-none outline-none
+                    ${isActive ? "text-[#0033FF] font-bold" : "text-black bg-transparent hover:bg-[#EEF2F9]"}`}
+                  style={isActive ? { background: "linear-gradient(0deg, rgba(242, 230, 238, 0.3) 0%, rgba(151, 125, 255, 0.3) 100%)" } : {}}
+                >
+                  <span className={`flex items-center shrink-0 transition-colors ${isActive ? "text-[#0033FF]" : "text-gray-500"}`}>
+                    {tab.icon}
+                  </span>
+                  <span className="text-[16px] flex-1 text-left">
+                    {tab.label}
+                  </span>
+                  {tab.key === "REQUESTS" && requestCount > 0 && (
+                    <Badge
+                      count={requestCount}
+                      size="small"
+                      className="[&_.ant-badge-count]:!bg-[#0029FF]"
+                    />
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </div>
       </div>

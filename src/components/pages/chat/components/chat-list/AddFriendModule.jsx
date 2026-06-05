@@ -24,10 +24,10 @@ export default function AddFriendModule({ onClose, onSearchSuccess }) {
   const hasSearched = !loading && keyword.trim() !== "";
 
   return (
-    <div className="flex flex-col bg-white" style={{ height: 560 }}>
+    <div className="flex flex-col bg-white rounded-[24px] overflow-hidden" style={{ height: 560 }}>
       {/* ── Header ─────────────────────────────────── */}
       <div
-        className="relative flex items-center justify-center px-6 py-5 shrink-0"
+        className="relative flex items-center justify-center px-6 py-5 shrink-0 rounded-[24px]"
         style={{
           background: "linear-gradient(135deg, #0033FF 0%, #6366F1 100%)",
         }}

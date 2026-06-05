@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Empty, Input, Spin } from "antd";
-import { SearchOutlined, StopOutlined } from "@ant-design/icons";
+import { SearchOutlined } from "@ant-design/icons";
 import { PROFILE_AVATAR } from "../../../constants/asset.constants.js";
 
 /* ── Component ───────────────────────────────────── */
@@ -17,15 +17,10 @@ const BlockedUserList = ({ users = [], loading = false, onSelect, selectedId }) 
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden rounded-[24px] bg-white shadow-sm">
-      {/* Header */}
-      <div className="border-b border-gray-50 p-4 space-y-3">
-        <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#E3E9FF] py-3 text-[14px] font-bold uppercase text-[#0029FF]">
-          <StopOutlined className="!text-base" />
-          Đã chặn
-        </div>
-
-        {/* Ô tìm kiếm */}
-        {users.length > 0 && (
+      {/* Header - Đã bỏ hẳn nút "Đã chặn" để đồng bộ giao diện */}
+      {users.length > 0 && (
+        <div className="border-b border-gray-50 p-4">
+          {/* Ô tìm kiếm */}
           <Input
             placeholder="Tìm kiếm..."
             allowClear
@@ -34,8 +29,8 @@ const BlockedUserList = ({ users = [], loading = false, onSelect, selectedId }) 
             prefix={<SearchOutlined className="text-gray-400 mr-1" />}
             className="!rounded-lg !bg-[#E8EEFB] !border-none !h-[38px] hover:!bg-[#d8e3f9] focus-within:!bg-[#d8e3f9] [&_.ant-input]:!bg-transparent focus-within:!shadow-none"
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Danh sách người bị chặn */}
       <div className="flex-1 overflow-y-auto p-2">

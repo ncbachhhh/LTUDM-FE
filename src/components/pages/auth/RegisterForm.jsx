@@ -1,7 +1,15 @@
 import React, { useState } from "react";
 import UserAPI from "../../../apis/user.api.jsx";
 import { useNotification } from "../../../contexts/notification.context.jsx";
-import { Form, Input, Checkbox, Button, Typography } from "antd";
+import {
+  Form,
+  Input,
+  Checkbox,
+  Button,
+  Typography,
+  Select,
+  DatePicker,
+} from "antd";
 import { FaArrowLeft } from "react-icons/fa";
 
 const { Title } = Typography;
@@ -11,7 +19,8 @@ const RegisterForm = ({ setView }) => {
 
   const [formData, setFormData] = useState({
     email: "",
-    username: "",
+    gender: "",
+    birth_date: "",
     password: "",
     display_name: "",
     terms: false,
@@ -35,7 +44,8 @@ const RegisterForm = ({ setView }) => {
 
     if (
       !formData.email ||
-      !formData.username ||
+      !formData.gender ||
+      !formData.birth_date ||
       !formData.password ||
       !formData.display_name
     ) {
@@ -67,7 +77,8 @@ const RegisterForm = ({ setView }) => {
 
     const data = {
       email: formData.email,
-      username: formData.username,
+      gender: formData.gender,
+      birth_date: formData.birth_date,
       password: formData.password,
       display_name: formData.display_name,
     };
@@ -104,13 +115,22 @@ const RegisterForm = ({ setView }) => {
         <FaArrowLeft className="w-4 h-4" />
       </button>
 
-      <Title level={2} className="!text-2xl !font-bold !text-black !text-center !mt-0 !mb-6">
+      <Title
+        level={2}
+        className="!text-2xl !font-bold !text-black !text-center !mt-0 !mb-6"
+      >
         Đăng ký
       </Title>
 
-      <Form onFinish={handleRegister} layout="vertical" className="flex flex-col gap-4">
-        <Form.Item 
-          label={<span className="text-sm font-bold text-black">Tên hiển thị</span>}
+      <Form
+        onFinish={handleRegister}
+        layout="vertical"
+        className="flex flex-col gap-4"
+      >
+        <Form.Item
+          label={
+            <span className="text-sm font-bold text-black">Tên hiển thị</span>
+          }
           className="!mb-0"
         >
           <Input
@@ -123,21 +143,53 @@ const RegisterForm = ({ setView }) => {
           />
         </Form.Item>
 
-        <Form.Item 
-          label={<span className="text-sm font-bold text-black">Username</span>}
-          className="!mb-0"
-        >
-          <Input
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            placeholder="Nhập username"
-            size="large"
-            className="w-full !p-3 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"
-          />
-        </Form.Item>
+        <div className="grid grid-cols-2 gap-4">
+          <Form.Item
+            label={
+              <span className="text-sm font-bold text-black">Giới tính</span>
+            }
+            className="!mb-0"
+          >
+            <Select
+              value={formData.gender || undefined}
+              onChange={(value) =>
+                setFormData({
+                  ...formData,
+                  gender: value,
+                })
+              }
+              placeholder="Chọn giới tính"
+              size="large"
+              className="w-full !h-[48px] !rounded-xl !font-semibold !bg-[#C7D2FE]"
+              options={[
+                { value: "male", label: "Nam" },
+                { value: "female", label: "Nữ" },
+              ]}
+            />
+          </Form.Item>
 
-        <Form.Item 
+          <Form.Item
+            label={
+              <span className="text-sm font-bold text-black">Ngày sinh</span>
+            }
+            className="!mb-0"
+          >
+            <DatePicker
+              onChange={(date) =>
+                setFormData({
+                  ...formData,
+                  birth_date: date ? date.format("YYYY-MM-DD") : "",
+                })
+              }
+              placeholder="Chọn ngày sinh"
+              size="large"
+              format="DD/MM/YYYY"
+              className="w-full !h-[48px] !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold border-none outline-none focus:!ring-2 focus:!ring-blue-600"
+            />
+          </Form.Item>
+        </div>
+
+        <Form.Item
           label={<span className="text-sm font-bold text-black">Email</span>}
           className="!mb-0"
         >
@@ -152,7 +204,7 @@ const RegisterForm = ({ setView }) => {
           />
         </Form.Item>
 
-        <Form.Item 
+        <Form.Item
           label={<span className="text-sm font-bold text-black">Mật khẩu</span>}
           className="!mb-0"
         >
@@ -173,10 +225,10 @@ const RegisterForm = ({ setView }) => {
             onChange={(e) => {
               handleChange({
                 target: {
-                  name: 'terms',
-                  type: 'checkbox',
-                  checked: e.target.checked
-                }
+                  name: "terms",
+                  type: "checkbox",
+                  checked: e.target.checked,
+                },
               });
             }}
             className="text-xs text-black font-medium leading-relaxed"

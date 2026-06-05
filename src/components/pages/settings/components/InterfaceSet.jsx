@@ -8,7 +8,6 @@ const InterfaceSet = () => {
   const themeOptions = [
     { id: "light", label: "LightMode" },
     { id: "dark", label: "DarkMode" },
-    { id: "system", label: "Smart" },
   ];
 
   const allColors = [
@@ -54,19 +53,31 @@ const InterfaceSet = () => {
         </h2>
       </div>
       
-      {/* ── CỤM 1: CÀI ĐẶT GIAO DIỆN ── */}
+      {/* ── CỤM 1: CÀI ĐẶT GIAO DIỆN (Chỉ còn Light và Dark) ── */}
       <div className="flex flex-col gap-2 flex-shrink-0">
         <h2 className="text-[16px] font-bold text-black px-1">Cài đặt giao diện</h2>
         <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
-          <div className="grid grid-cols-3 w-full gap-2">
+          {/* Đổi thành grid-cols-2 cho cân xứng */}
+          <div className="grid grid-cols-2 w-full gap-4">
             {themeOptions.map((option) => {
               const isSelected = theme === option.id;
               return (
-                <div key={option.id} onClick={() => setTheme(option.id)} className="flex flex-col items-center gap-2 cursor-pointer group mx-auto w-full max-w-[210px]">
+                <div key={option.id} onClick={() => setTheme(option.id)} className="flex flex-col items-center gap-2 cursor-pointer group mx-auto w-full max-w-[240px]">
                   <div className={`relative w-full aspect-[14/10] rounded-[16px] border-[3px] overflow-hidden flex transition-all duration-200 ${isSelected ? "border-[#0033FF] shadow-[0_4px_12px_rgba(0,51,255,0.08)] scale-[1.01]" : "border-gray-200 hover:border-gray-300"}`}>
-                    {option.id === "light" && <div className="w-full h-full bg-[#EBF1FA] relative p-3 flex items-center justify-center"><div className="absolute top-3.5 left-3.5 w-6 h-6 rounded-full bg-[#A3C3FF]" /><div className="w-[62%] h-7 bg-white rounded-xl absolute top-3.5 left-12.5 shadow-sm border border-gray-100" /><div className="w-[48%] h-7 bg-[#A3C3FF] rounded-xl absolute bottom-3.5 right-3.5" /></div>}
-                    {option.id === "dark" && <div className="w-full h-full bg-[#1E1E1E] relative p-3 flex items-center justify-center"><div className="absolute top-3.5 left-3.5 w-6 h-6 rounded-full bg-[#3E424B]" /><div className="w-[62%] h-7 bg-[#2A2B30] rounded-xl absolute top-3.5 left-12.5" /><div className="w-[48%] h-7 bg-[#0033FF] rounded-xl absolute bottom-3.5 right-3.5" /></div>}
-                    {option.id === "system" && <div className="w-full h-full flex"><div className="w-1/2 h-full bg-[#EBF1FA] relative overflow-hidden"><div className="absolute top-3.5 left-3.5 w-6 h-6 rounded-full bg-[#A3C3FF]" /><div className="w-[124%] h-7 bg-white rounded-xl absolute top-3.5 left-12.5 shadow-sm border border-gray-100" /></div><div className="w-1/2 h-full bg-[#1E1E1E] relative border-l border-zinc-800 overflow-hidden"><div className="w-[96%] h-7 bg-[#0033FF] rounded-xl absolute bottom-3.5 right-3.5" /></div></div>}
+                    {option.id === "light" && (
+                      <div className="w-full h-full bg-[#EBF1FA] relative p-3 flex items-center justify-center">
+                        <div className="absolute top-3.5 left-3.5 w-6 h-6 rounded-full bg-[#A3C3FF]" />
+                        <div className="w-[62%] h-7 bg-white rounded-xl absolute top-3.5 left-12.5 shadow-sm border border-gray-100" />
+                        <div className="w-[48%] h-7 bg-[#A3C3FF] rounded-xl absolute bottom-3.5 right-3.5" />
+                      </div>
+                    )}
+                    {option.id === "dark" && (
+                      <div className="w-full h-full bg-[#1E1E1E] relative p-3 flex items-center justify-center">
+                        <div className="absolute top-3.5 left-3.5 w-6 h-6 rounded-full bg-[#3E424B]" />
+                        <div className="w-[62%] h-7 bg-[#2A2B30] rounded-xl absolute top-3.5 left-12.5" />
+                        <div className="w-[48%] h-7 bg-[#0033FF] rounded-xl absolute bottom-3.5 right-3.5" />
+                      </div>
+                    )}
                   </div>
                   <span className={`text-[14px] font-extrabold tracking-wide transition-colors mt-1 ${isSelected ? "text-[#0033FF]" : "text-black group-hover:text-gray-700"}`}>{option.label}</span>
                 </div>

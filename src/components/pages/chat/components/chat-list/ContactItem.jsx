@@ -21,12 +21,12 @@ export default function ContactItem({
     <div
       onClick={onClick}
       className={`relative group flex items-center gap-3 p-2 cursor-pointer transition-all duration-200 rounded-[10px]
-        ${isActive ? "" : "bg-transparent hover:bg-[#EEF2F9] has-[button:hover]:bg-transparent"}`}
+        ${isActive ? "" : "bg-transparent hover:bg-[#f1f2f4] has-[button:hover]:bg-transparent"}`}
       style={
         isActive
           ? {
               background:
-                "linear-gradient(0deg, rgba(242, 230, 238, 0.3) 0%, rgba(151, 125, 255, 0.3) 100%)",
+                "#e5f1ff",
             }
           : {}
       }

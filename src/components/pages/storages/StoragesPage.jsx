@@ -26,7 +26,7 @@ const getBlockedUserFromResponse = (friendship) => {
     username: user.username,
     avatar: getAvatarUrl(user),
     friendshipId: friendship.id,
-    message: "Hiện không thể liên lạc",
+    message: "", // Đã bỏ chữ hiển thị bên dưới tên người dùng
     raw: friendship,
   };
 };
@@ -96,9 +96,13 @@ const StoragesPage = () => {
   }, [loadBlockedConversations]);
 
   return (
-    <div className="flex h-full gap-4 overflow-hidden bg-[#Eef1f6] p-4">
-      {/* Sidebar - Danh sách chặn */}
-      <div className="flex h-full w-[340px] shrink-0 flex-col gap-4 text-left">
+    <div className="flex h-full gap-4 overflow-hidden bg-[#E9ECF6] p-4">
+      {/* ── SIDEBAR TRÁI ── */}
+      <div className="flex h-full w-[320px] shrink-0 flex-col gap-3 text-left">
+        <div className="w-full bg-[#D1DCFE] text-[#0029FF] border border-[#0029FF]/20 text-center font-black text-[14px] py-3 rounded-xl tracking-wider uppercase select-none shrink-0">
+          Block
+        </div>
+
         <ChatListStorages
           users={blockedUsers}
           loading={loading}
@@ -107,7 +111,7 @@ const StoragesPage = () => {
         />
       </div>
 
-      {/* Cửa sổ chat chi tiết / Empty State */}
+      {/* ── Cửa sổ chat chi tiết / Empty State ── */}
       <div className="h-full flex-1 overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm">
         {error ? (
           <div className="flex h-full items-center justify-center p-6">

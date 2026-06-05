@@ -17,7 +17,7 @@ const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("THEME");
 
   return (
-    <div className="flex h-full bg-[#EEF1F6] p-4 gap-4 overflow-hidden">
+    <div className="flex h-full bg-[#E9ECF6] p-4 gap-4 overflow-hidden">
       
       {/* ── SIDEBAR TRÁI: Chuẩn đét dải xanh tách biệt hộp trắng ── */}
       <div className="w-[320px] flex flex-col gap-3 shrink-0 h-full">

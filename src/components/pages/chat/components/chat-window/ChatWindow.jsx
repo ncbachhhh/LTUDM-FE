@@ -11,6 +11,7 @@ import { getCurrentUserId } from "../../../../../utils/identity.util.js";
 import ChatInput from "./ChatInput.jsx";
 import MessageList from "./MessageList.jsx";
 import { useEffect, useRef, useState } from "react";
+import PinnedMessagesBar from "./PinnedMessagesBar.jsx";
 
 const { Text } = Typography;
 
@@ -329,6 +330,12 @@ export default function ChatWindow({
 
       const nextPinnedStatus = !currentMessage.isPinned;
 
+      // Giới hạn ghim tối đa 3 tin nhắn
+      if (nextPinnedStatus && pinnedMessages.length >= 3) {
+        alert("Bạn chỉ được ghim tối đa 3 tin nhắn.");
+        return;
+      }
+
       // Update tạm trên FE để UI phản hồi nhanh
       setMessages((prev) =>
         prev.map((item) =>
@@ -429,9 +436,9 @@ export default function ChatWindow({
   };
 
   return (
-    <div className="flex h-full flex-1 flex-col overflow-hidden rounded-[10px] border border-gray-100 bg-white shadow-sm">
-      {/* Header: Thông tin người/nhóm chat */}
-      <div className="flex items-center justify-between border-b p-5">
+    <div className="relative flex h-full flex-1 flex-col overflow-hidden rounded-[10px] border border-gray-100 bg-white shadow-sm">
+      {/* Header: Thông tin người/nhóm chat - Đã thay border thành #9B9B9B */}
+      <div className="flex items-center justify-between border-b border-[#9B9B9B] p-5">
         <div className="flex items-center gap-4">
           <img
             src={data.avatar}
@@ -447,8 +454,8 @@ export default function ChatWindow({
                 isOnline
                   ? "!text-green-500"
                   : canMessage
-                    ? "!text-gray-400"
-                    : "!text-red-400"
+                  ? "!text-gray-400"
+                  : "!text-red-400"
               }`}
             >
               {displayStatus}
@@ -473,35 +480,12 @@ export default function ChatWindow({
         </Tooltip>
       </div>
 
-      {latestPinnedMessage && (
-        <button
-          type="button"
-          onClick={() => handleJumpToMessage(latestPinnedMessage.id)}
-          className="flex items-center justify-between border-b bg-yellow-50 px-5 py-3 text-left hover:bg-yellow-100 transition-colors"
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-yellow-100 text-yellow-600">
-              <FaThumbtack size={14} />
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-yellow-700">
-                Tin nhắn đã ghim
-                {pinnedMessages.length > 1
-                  ? ` · ${pinnedMessages.length} tin`
-                  : ""}
-              </p>
-
-              <p className="truncate text-sm font-medium text-gray-700">
-                {getMessagePreview(latestPinnedMessage)}
-              </p>
-            </div>
-          </div>
-
-          <FaChevronRight className="ml-3 shrink-0 text-yellow-600" size={14} />
-        </button>
-      )}
-
+<PinnedMessagesBar 
+  pinnedMessages={pinnedMessages}
+  latestPinnedMessage={latestPinnedMessage}
+  onJumpTo={handleJumpToMessage}
+  getMessagePreview={getMessagePreview}
+/>
       {/* Khu vực tin nhắn */}
       <div
         ref={messageContainerRef}
@@ -534,9 +518,9 @@ export default function ChatWindow({
             onReply={(msg) => {
               console.log("REPLY MESSAGE:", msg);
               setReplyingMessage(msg);
-            }} // <--- TRUYỀN CALLBACK
-            onPin={handlePin} // <--- TRUYỀN CALLBACK
-            onRecall={handleRecall} // <--- TRUYỀN CALLBACK
+            }} 
+            onPin={handlePin} 
+            onRecall={handleRecall} 
             onDelete={handleDeleteForMe}
           />
         )}
@@ -549,8 +533,8 @@ export default function ChatWindow({
             currentEmoji={currentEmoji}
             onSendMessage={handleSendMessage}
             onSendFileMessage={handleSendFileMessage}
-            replyingMsg={replyingMessage} // <--- TRUYỀN PROP
-            onCancelReply={() => setReplyingMessage(null)} // <--- TRUYỀN PROP
+            replyingMsg={replyingMessage} 
+            onCancelReply={() => setReplyingMessage(null)} 
           />
         </div>
       ) : (
