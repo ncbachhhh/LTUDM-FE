@@ -4,7 +4,7 @@ import LoginPage from "./components/pages/auth/LoginPage.jsx";
 import ChatPage from "./components/pages/chat/ChatPage.jsx";
 import ContactsPage from "./components/pages/contacts/ContactsPage";
 import StoragesPage from "./components/pages/storages/StoragesPage.jsx";
-import { SoundProvider } from "./contexts/sound.jsx"; 
+import { SoundProvider } from "./contexts/sound.jsx";
 import ProfilePage from "./components/pages/profile/ProfilePage.jsx"; // Đã có trong cây thư mục
 import SettingsPage from "./components/pages/settings/SettingPage.jsx";
 import { useAuth } from "./contexts/auth.context.jsx";
@@ -12,8 +12,15 @@ import { Spin } from "antd";
 
 function LoadingScreen() {
   return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-      <Spin size="large" tip="Đang tải..." />
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+      }}
+    >
+      <Spin size="large" description="Đang tải..." />
     </div>
   );
 }
@@ -50,16 +57,16 @@ function App() {
   return (
     <SoundProvider>
       <Routes>
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             <PublicRoute>
               <LoginPage />
             </PublicRoute>
-          } 
+          }
         />
 
-        <Route 
+        <Route
           element={
             <ProtectedRoute>
               <MainLayout />

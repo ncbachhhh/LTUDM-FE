@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { FaArchive, FaCog, FaRegUserCircle, FaSignOutAlt, FaUserAlt } from "react-icons/fa";
+import {
+  FaArchive,
+  FaCog,
+  FaRegUserCircle,
+  FaSignOutAlt,
+  FaUserAlt,
+} from "react-icons/fa";
 import { BsChatDotsFill } from "react-icons/bs";
 import { useLocation, useNavigate } from "react-router-dom";
 import { DEFAULT_AVATAR } from "../../constants/asset.constants.js";
@@ -30,8 +36,21 @@ const NAV_ITEM_GAP = 16;
 function ActiveCurve() {
   return (
     <>
-      <div className="absolute -top-[25px] right-0 h-[25px] w-[25px] bg-[#E8EEFB] transition-colors duration-300 before:absolute before:inset-0 before:rounded-br-[25px] before:bg-[#0029FF] before:content-['']" />
-      <div className="absolute -bottom-[25px] right-0 h-[25px] w-[25px] bg-[#E8EEFB] transition-colors duration-300 before:absolute before:inset-0 before:rounded-tr-[25px] before:bg-[#0029FF] before:content-['']" />
+      <div
+        className="pointer-events-none absolute -top-[25px] right-0 h-[25px] w-[25px]"
+        style={{
+          background:
+            "radial-gradient(circle at top left, transparent 24.5px, #E8EEFB 25px)",
+        }}
+      />
+
+      <div
+        className="pointer-events-none absolute -bottom-[25px] right-0 h-[25px] w-[25px]"
+        style={{
+          background:
+            "radial-gradient(circle at bottom left, transparent 24.5px, #E8EEFB 25px)",
+        }}
+      />
     </>
   );
 }
@@ -65,8 +84,9 @@ function NavItem({ item, active, onClick }) {
     >
       <Icon
         className={`relative z-10 h-7 w-7 transition-[color,transform] duration-300 ease-out ${
-          active ? "text-[#0029FF]" : "text-white"
+          active ? "" : "text-white"
         }`}
+        style={active ? { fill: "url(#sideNavIconGradient)" } : undefined}
       />
     </button>
   );
@@ -80,7 +100,9 @@ export default function SideNav() {
   const location = useLocation();
   const { logout, user } = useAuth();
 
-  const activeIndex = navItems.findIndex((item) => item.path === location.pathname);
+  const activeIndex = navItems.findIndex(
+    (item) => item.path === location.pathname,
+  );
   const isSettingsActive = location.pathname === "/settings";
 
   useEffect(() => {
@@ -96,7 +118,20 @@ export default function SideNav() {
 
   return (
     <>
-      <div className="relative flex h-full w-20 shrink-0 flex-col items-end bg-[#0029FF] py-6">
+      <svg width="0" height="0" className="absolute">
+        <defs>
+          <linearGradient id="sideNavIconGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0033FF" />
+            <stop offset="100%" stopColor="#00033D" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div
+        className="relative flex h-full w-20 shrink-0 flex-col items-end py-6"
+        style={{
+          background: "linear-gradient(180deg, #0033FF 0%, #00033D 90%)",
+        }}
+      >
         {/* Khu vực 3 nút chính phía trên */}
         <div className="relative flex w-full flex-1 flex-col items-end gap-4">
           <ActiveIndicator index={activeIndex} />
@@ -112,8 +147,10 @@ export default function SideNav() {
         </div>
 
         {/* Khu vực Đáy: Giữ nguyên gap-10 chuẩn chỉnh của bạn */}
-        <div className="mt-8 flex w-full flex-col items-center gap-10" ref={profileRef}>
-          
+        <div
+          className="mt-8 flex w-full flex-col items-center gap-10"
+          ref={profileRef}
+        >
           {/* Nút Cài đặt: Giữ nguyên h-8 w-8 tuyệt đối */}
           <div className="relative flex h-8 w-full items-center justify-center">
             {/* Vùng thụt lề nền trượt mượt mà cho Cài đặt ăn khớp sang mép phải */}
@@ -122,7 +159,7 @@ export default function SideNav() {
                 <ActiveCurve />
               </div>
             )}
-            
+
             <button
               type="button"
               onClick={() => {
@@ -130,11 +167,20 @@ export default function SideNav() {
                 navigate("/settings");
               }}
               className={`relative z-10 flex h-8 w-8 items-center justify-center transition-all active:scale-95 ${
-                isSettingsActive ? "text-[#0029FF] opacity-100" : "text-white opacity-80 hover:opacity-100"
+                isSettingsActive
+                  ? "text-[#0033FF] opacity-100"
+                  : "text-white opacity-80 hover:opacity-100"
               }`}
               aria-label="Cài đặt"
             >
-              <FaCog className="h-7 w-7" />
+              <FaCog
+                className="h-7 w-7"
+                style={
+                  isSettingsActive
+                    ? { fill: "url(#sideNavIconGradient)" }
+                    : undefined
+                }
+              />
             </button>
           </div>
 
@@ -167,7 +213,7 @@ export default function SideNav() {
                   <FaUserAlt className="h-4 w-4 text-gray-500" />
                   Tài khoản
                 </button>
-                
+
                 <button
                   type="button"
                   onClick={async () => {
@@ -187,7 +233,10 @@ export default function SideNav() {
       </div>
 
       {/* Lớp phủ thông tin cá nhân dạng Modal hoành tráng */}
-      <ProfilePage isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <ProfilePage
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+      />
     </>
   );
 }

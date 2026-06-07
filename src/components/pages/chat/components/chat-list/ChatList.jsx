@@ -42,7 +42,7 @@ export default function ChatList({
           pinned: existing ? existing.pinned : false,
           order: index,
         };
-      })
+      }),
     );
   }, [contacts?.people]);
 
@@ -58,11 +58,11 @@ export default function ChatList({
           pinned: existing ? existing.pinned : false,
           order: index,
         };
-      })
+      }),
     );
   }, [contacts?.groups]);
 
-    // Mock handleCreateGroup removed
+  // Mock handleCreateGroup removed
 
   const handleChatAction = (type, chatId) => {
     const updateList = (list) => {
@@ -84,8 +84,12 @@ export default function ChatList({
 
           const updated = list.map((p) =>
             p.id === chatId
-              ? { ...p, pinned: !p.pinned, lastPinnedAt: !isCurrentlyPinned ? Date.now() : 0 }
-              : p
+              ? {
+                  ...p,
+                  pinned: !p.pinned,
+                  lastPinnedAt: !isCurrentlyPinned ? Date.now() : 0,
+                }
+              : p,
           );
 
           return [...updated].sort((a, b) => {
@@ -100,10 +104,14 @@ export default function ChatList({
           return list.filter((p) => p.id !== chatId);
 
         case "MARK_UNREAD":
-          return list.map((p) => (p.id === chatId ? { ...p, unread: true } : p));
+          return list.map((p) =>
+            p.id === chatId ? { ...p, unread: true } : p,
+          );
 
         case "READ":
-          return list.map((p) => (p.id === chatId ? { ...p, unread: false } : p));
+          return list.map((p) =>
+            p.id === chatId ? { ...p, unread: false } : p,
+          );
 
         default:
           return list;
@@ -141,14 +149,21 @@ export default function ChatList({
 
       {/* Bộ lọc chưa đọc */}
       <div className="flex items-center gap-3 px-1">
-        <Text strong className="text-[14px] text-slate-800">Chưa đọc</Text>
+        <Text strong className="text-[14px] text-slate-800">
+          Chưa đọc
+        </Text>
         <UnreadFilter initialEnabled={false} />
       </div>
 
       {/* Danh sách hội thoại cá nhân */}
       <div className="flex min-h-0 flex-[1.55] flex-col overflow-hidden rounded-[10px] bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between shrink-0">
-          <Text strong className="text-base text-slate-800 uppercase tracking-wider">People</Text>
+          <Text
+            strong
+            className="text-base text-slate-800 uppercase tracking-wider"
+          >
+            People
+          </Text>
           <button
             type="button"
             onClick={handleOpenAddFriend}
@@ -162,7 +177,7 @@ export default function ChatList({
         <div className="flex-1 overflow-y-auto scrollbar-hide">
           {loading ? (
             <div className="mt-6 flex justify-center">
-              <Spin tip="Đang tải hội thoại..." />
+              <Spin description="Đang tải hội thoại..." />
             </div>
           ) : people.length > 0 ? (
             people.map((user) => (
@@ -183,7 +198,10 @@ export default function ChatList({
               />
             ))
           ) : (
-            <Text type="secondary" className="mt-6 block text-center text-xs font-semibold">
+            <Text
+              type="secondary"
+              className="mt-6 block text-center text-xs font-semibold"
+            >
               Không có hội thoại cá nhân
             </Text>
           )}
@@ -193,7 +211,12 @@ export default function ChatList({
       {/* Danh sách nhóm chat */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between shrink-0">
-          <Text strong className="text-base text-slate-800 uppercase tracking-wider">Group</Text>
+          <Text
+            strong
+            className="text-base text-slate-800 uppercase tracking-wider"
+          >
+            Group
+          </Text>
           <button
             type="button"
             onClick={handleOpenCreateGroup}
@@ -207,7 +230,7 @@ export default function ChatList({
         <div className="flex-1 overflow-y-auto scrollbar-hide">
           {loading ? (
             <div className="mt-6 flex justify-center">
-              <Spin tip="Đang tải nhóm..." />
+              <Spin description="Đang tải nhóm..." />
             </div>
           ) : groups.length > 0 ? (
             groups.map((group) => (
@@ -227,7 +250,10 @@ export default function ChatList({
               />
             ))
           ) : (
-            <Text type="secondary" className="mt-6 block text-center text-xs font-semibold">
+            <Text
+              type="secondary"
+              className="mt-6 block text-center text-xs font-semibold"
+            >
               Không có nhóm chat
             </Text>
           )}
@@ -242,7 +268,10 @@ export default function ChatList({
         centered
         destroyOnHidden
         width={580}
-        styles={{ body: { padding: 0 }, content: { padding: 0, borderRadius: 24, overflow: "hidden" } }}
+        styles={{
+          body: { padding: 0 },
+          content: { padding: 0, borderRadius: 24, overflow: "hidden" },
+        }}
         closeIcon={null}
       >
         {modalView === "search" ? (
@@ -274,7 +303,10 @@ export default function ChatList({
         centered
         destroyOnHidden
         width={500}
-        styles={{ body: { padding: 0 }, content: { padding: 0, borderRadius: 24, overflow: "hidden" } }}
+        styles={{
+          body: { padding: 0 },
+          content: { padding: 0, borderRadius: 24, overflow: "hidden" },
+        }}
         closeIcon={null}
       >
         <CreateGroupModule

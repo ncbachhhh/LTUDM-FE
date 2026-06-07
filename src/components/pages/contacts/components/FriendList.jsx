@@ -1,17 +1,29 @@
 import { useMemo, useState } from "react";
 import { Badge, Dropdown, Empty, Input, Spin } from "antd";
-import { DownOutlined, MessageOutlined, SearchOutlined, SortAscendingOutlined, UserOutlined } from "@ant-design/icons";
+import {
+  DownOutlined,
+  MessageOutlined,
+  SearchOutlined,
+  SortAscendingOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { DEFAULT_AVATAR } from "../../../../constants/asset.constants.js";
 
 /* ── Helpers ──────────────────────────────────────── */
 
 const getDisplayName = (user) =>
-  user?.display_name || user?.displayName || user?.username || user?.email || "Người dùng";
+  user?.display_name ||
+  user?.displayName ||
+  user?.username ||
+  user?.email ||
+  "Người dùng";
 
-const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || user?.avatar || DEFAULT_AVATAR;
+const getAvatarUrl = (user) =>
+  user?.avatar_url || user?.avatarUrl || user?.avatar || DEFAULT_AVATAR;
 
-const isOnline = (user) => Boolean(user?.is_online || user?.isOnline || user?.online);
+const isOnline = (user) =>
+  Boolean(user?.is_online || user?.isOnline || user?.online);
 
 /* ── Sort config ─────────────────────────────────── */
 
@@ -34,7 +46,11 @@ const FriendList = ({ friends = [], loading = false, onOpenProfile }) => {
     const filteredFriends = friends
       .filter((friend) => {
         if (!query) return true;
-        const haystack = [getDisplayName(friend), friend?.username, friend?.email]
+        const haystack = [
+          getDisplayName(friend),
+          friend?.username,
+          friend?.email,
+        ]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
@@ -80,7 +96,9 @@ const FriendList = ({ friends = [], loading = false, onOpenProfile }) => {
     label: (
       <span className="flex items-center justify-between w-full">
         <span>{opt.label}</span>
-        {sortType === opt.key && <span className="text-[#0029FF] font-bold ml-3">✓</span>}
+        {sortType === opt.key && (
+          <span className="text-[#0029FF] font-bold ml-3">✓</span>
+        )}
       </span>
     ),
     onClick: () => setSortType(opt.key),
@@ -104,7 +122,11 @@ const FriendList = ({ friends = [], loading = false, onOpenProfile }) => {
             className="flex-1 !rounded-lg !bg-[#E8EEFB] !border-none !h-[38px] hover:!bg-[#d8e3f9] focus-within:!bg-[#d8e3f9] [&_.ant-input]:!bg-transparent focus-within:!shadow-none"
           />
 
-          <Dropdown menu={{ items: sortMenuItems }} trigger={["click"]} placement="bottomRight">
+          <Dropdown
+            menu={{ items: sortMenuItems }}
+            trigger={["click"]}
+            placement="bottomRight"
+          >
             <button className="flex items-center gap-2 px-5 py-2 bg-[#BCCCFE] text-[#0029FF] rounded-lg font-bold text-[14px] whitespace-nowrap hover:bg-[#a8bcfe] transition-colors">
               <SortAscendingOutlined />
               {sortType === "AZ" ? "A tới Z" : "Z tới A"}
@@ -117,7 +139,7 @@ const FriendList = ({ friends = [], loading = false, onOpenProfile }) => {
         <div className="flex-1 overflow-y-auto pr-1">
           {loading && (
             <div className="py-12 flex justify-center">
-              <Spin tip="Đang tải danh sách bạn bè..." />
+              <Spin description="Đang tải danh sách bạn bè..." />
             </div>
           )}
 
@@ -160,7 +182,9 @@ const FriendList = ({ friends = [], loading = false, onOpenProfile }) => {
                               {getDisplayName(friend)}
                             </p>
                             {friend.email && (
-                              <p className="text-xs text-gray-400 truncate">{friend.email}</p>
+                              <p className="text-xs text-gray-400 truncate">
+                                {friend.email}
+                              </p>
                             )}
                           </div>
                         </div>
@@ -175,7 +199,14 @@ const FriendList = ({ friends = [], loading = false, onOpenProfile }) => {
                             onClick={(e) => e.stopPropagation()}
                             className="p-2 hover:bg-white rounded-full transition-all text-gray-300 hover:text-gray-600"
                           >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
                               <circle cx="12" cy="5" r="1" />
                               <circle cx="12" cy="12" r="1" />
                               <circle cx="12" cy="19" r="1" />

@@ -8,7 +8,7 @@ export default function SearchBar({ contacts = { people: [], groups: [] } }) {
   const peopleList = contacts?.people || [];
 
   const filteredFriends = peopleList.filter((person) =>
-    person.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    person.name?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const closeSearch = () => {
@@ -76,11 +76,21 @@ export default function SearchBar({ contacts = { people: [], groups: [] } }) {
                             event.currentTarget.src = DEFAULT_AVATAR;
                           }}
                         />
-                        <span className="text-[14px] font-bold text-gray-800">{person.name}</span>
+                        <span className="text-[14px] font-bold text-gray-800">
+                          {person.name}
+                        </span>
                       </div>
 
-                      <button type="button" className="text-gray-400 hover:text-black">
-                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                      <button
+                        type="button"
+                        className="text-gray-400 hover:text-black"
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                        >
                           <path
                             d="M13 1L1 13M1 1L13 13"
                             stroke="currentColor"
@@ -106,13 +116,18 @@ export default function SearchBar({ contacts = { people: [], groups: [] } }) {
                 </h3>
                 <div className="flex flex-col gap-5">
                   {peopleList.slice(0, 3).map((person) => (
-                    <div key={`contact-${person.id}`} className="flex cursor-pointer items-center gap-3">
+                    <div
+                      key={`contact-${person.id}`}
+                      className="flex cursor-pointer items-center gap-3"
+                    >
                       <img
                         src={person.avatar}
                         className="h-10 w-10 rounded-full bg-[#D9D9D9] object-cover"
                         alt=""
                       />
-                      <span className="text-[14px] font-bold text-gray-800">{person.name}</span>
+                      <span className="text-[14px] font-bold text-gray-800">
+                        {person.name}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -122,7 +137,7 @@ export default function SearchBar({ contacts = { people: [], groups: [] } }) {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .custom-search-scrollbar::-webkit-scrollbar { width: 14px; }
         .custom-search-scrollbar::-webkit-scrollbar-thumb {
           background: #A8A8A8;
@@ -133,4 +148,3 @@ export default function SearchBar({ contacts = { people: [], groups: [] } }) {
     </div>
   );
 }
-

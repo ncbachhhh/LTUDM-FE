@@ -515,7 +515,7 @@ export default function ChatWindow({
         )}
         {loadingMessages ? (
           <div className="mt-10 flex justify-center">
-            <Spin tip="Đang tải tin nhắn..." />
+            <Spin description="Đang tải tin nhắn..." />
           </div>
         ) : errorMessage ? (
           <Text
