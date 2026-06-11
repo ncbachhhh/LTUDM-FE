@@ -1,32 +1,55 @@
-import React, { useState } from "react";
-import { Palette } from "lucide-react"; // Thêm Icon
+import { useState } from "react";
+import { Palette } from "lucide-react";
+import { message } from "antd";
+import UserAPI from "../../../../apis/user.api.jsx";
+import { useAuth } from "../../../../contexts/auth.context.jsx";
+
+const THEME_OPTIONS = [
+  { id: "light", label: "LightMode" },
+  { id: "dark", label: "DarkMode" },
+];
+
+const CHAT_COLORS = [
+  { id: "c1", bg: "#0033FF", border: "#0033FF" },
+  { id: "c2", bg: "#E91E63", border: "#E91E63" },
+  { id: "c3", bg: "#9C27B0", border: "#9C27B0" },
+  { id: "c4", bg: "#4CAF50", border: "#4CAF50" },
+  { id: "c5", bg: "#FF9800", border: "#FF9800" },
+  { id: "c6", bg: "#F44336", border: "#F44336" },
+  { id: "c7", bg: "linear-gradient(135deg, #FF3E3E 0%, #FF9900 100%)", border: "#FF9900" },
+  { id: "c8", bg: "linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)", border: "#0072FF" },
+  { id: "c9", bg: "linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)", border: "#4A00E0" },
+  { id: "c10", bg: "linear-gradient(135deg, #00FF87 0%, #60EFFF 100%)", border: "#00FF87" },
+  { id: "c11", bg: "linear-gradient(135deg, #FFD200 0%, #F7971E 100%)", border: "#F7971E" },
+  { id: "c12", bg: "linear-gradient(135deg, #FF00CC 0%, #333399 100%)", border: "#FF00CC" },
+];
+
+const getInitialTheme = (user) => {
+  const theme = user?.theme_mode || user?.themeMode;
+  return theme === "dark" ? "dark" : "light";
+};
+
+const getInitialChatColor = (user) => {
+  const persistedChatColor = user?.chat_color || user?.chatColor;
+  return (
+    CHAT_COLORS.find((color) => color.bg === persistedChatColor) ||
+    (persistedChatColor
+      ? { id: "custom", bg: persistedChatColor, border: "#0033FF" }
+      : CHAT_COLORS[0])
+  );
+};
 
 const InterfaceSet = () => {
-  const [theme, setTheme] = useState("light");
+  const { user, setUser } = useAuth();
+  const [theme, setTheme] = useState(() => getInitialTheme(user));
   const [showModal, setShowModal] = useState(false);
-
-  const themeOptions = [
-    { id: "light", label: "LightMode" },
-    { id: "dark", label: "DarkMode" },
-  ];
-
-  const allColors = [
-    { id: "c1", bg: "#0033FF", border: "#0033FF" },
-    { id: "c2", bg: "#E91E63", border: "#E91E63" },
-    { id: "c3", bg: "#9C27B0", border: "#9C27B0" },
-    { id: "c4", bg: "#4CAF50", border: "#4CAF50" },
-    { id: "c5", bg: "#FF9800", border: "#FF9800" },
-    { id: "c6", bg: "#F44336", border: "#F44336" },
-    { id: "c7", bg: "linear-gradient(135deg, #FF3E3E 0%, #FF9900 100%)", border: "#FF9900" },
-    { id: "c8", bg: "linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)", border: "#0072FF" },
-    { id: "c9", bg: "linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)", border: "#4A00E0" },
-    { id: "c10", bg: "linear-gradient(135deg, #00FF87 0%, #60EFFF 100%)", border: "#00FF87" },
-    { id: "c11", bg: "linear-gradient(135deg, #FFD200 0%, #F7971E 100%)", border: "#F7971E" },
-    { id: "c12", bg: "linear-gradient(135deg, #FF00CC 0%, #333399 100%)", border: "#FF00CC" },
-  ];
-
-  const [displayedColors, setDisplayedColors] = useState(allColors.slice(0, 4));
-  const [activeColor, setActiveColor] = useState(allColors[0]);
+  const [saving, setSaving] = useState(false);
+  const initialColor = getInitialChatColor(user);
+  const [displayedColors, setDisplayedColors] = useState(() => {
+    const filtered = CHAT_COLORS.filter((color) => color.id !== initialColor.id);
+    return [initialColor, ...filtered].slice(0, 4);
+  });
+  const [activeColor, setActiveColor] = useState(initialColor);
 
   const handleSelectColor = (color) => {
     setActiveColor(color);
@@ -35,6 +58,23 @@ const InterfaceSet = () => {
       const filtered = prev.filter(c => c.id !== color.id);
       return [color, ...filtered].slice(0, 4);
     });
+  };
+
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    const response = await UserAPI.updateSettings({
+      theme_mode: theme,
+      chat_color: activeColor.bg,
+    });
+    setSaving(false);
+
+    if (!response.isSuccess) {
+      message.error(response.message);
+      return;
+    }
+
+    setUser(response.data);
+    message.success("Đã cập nhật giao diện");
   };
 
   const getRingStyle = (color, isActive) => ({
@@ -59,7 +99,7 @@ const InterfaceSet = () => {
         <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
           {/* Đổi thành grid-cols-2 cho cân xứng */}
           <div className="grid grid-cols-2 w-full gap-4">
-            {themeOptions.map((option) => {
+            {THEME_OPTIONS.map((option) => {
               const isSelected = theme === option.id;
               return (
                 <div key={option.id} onClick={() => setTheme(option.id)} className="flex flex-col items-center gap-2 cursor-pointer group mx-auto w-full max-w-[240px]">
@@ -94,7 +134,7 @@ const InterfaceSet = () => {
           
           <div className="flex flex-col justify-center gap-4 flex-1">
             <div className="flex justify-start"><div className="bg-[#F1F2F6] h-[40px] w-[280px] rounded-2xl rounded-tl-sm"></div></div>
-            <div className="flex justify-end"><div className="h-[40px] w-[340px] rounded-2xl rounded-tr-sm transition-all duration-300 shadow-sm" style={{ background: activeColor.bg }}></div></div>
+            <div className="flex justify-end"><div className="h-[40px] w-[340px] rounded-2xl rounded-tr-sm transition-all duration-300 shadow-sm" style={{ background: activeColor.bg || "var(--chat-bubble-bg)" }}></div></div>
             <div className="flex justify-start"><div className="bg-[#F1F2F6] h-[40px] w-[310px] rounded-2xl rounded-tl-sm"></div></div>
           </div>
 
@@ -117,7 +157,7 @@ const InterfaceSet = () => {
                   <div className="fixed inset-0 z-40" onClick={() => setShowModal(false)} />
                   <div className="absolute bottom-12 left-0 z-50 bg-white p-5 rounded-[24px] shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-gray-100 w-[280px] animate-in fade-in zoom-in duration-200">
                     <div className="grid grid-cols-4 gap-4">
-                      {allColors.map((color) => (
+                      {CHAT_COLORS.map((color) => (
                         <div key={color.id} onClick={() => handleSelectColor(color)} className="w-12 h-12 rounded-full cursor-pointer transition-all duration-200 hover:scale-110" style={getRingStyle(color, activeColor.id === color.id)} />
                       ))}
                     </div>
@@ -125,7 +165,14 @@ const InterfaceSet = () => {
                 </>
               )}
             </div>
-            <button className="bg-[#0033FF] hover:bg-blue-700 text-white font-bold py-2.5 px-8 rounded-xl transition-colors text-[14px]">Áp dụng</button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSaveSettings}
+              className="bg-[#0033FF] hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2.5 px-8 rounded-xl transition-colors text-[14px]"
+            >
+              {saving ? "Đang lưu..." : "Áp dụng"}
+            </button>
           </div>
         </div>
       </div>

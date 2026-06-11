@@ -3,6 +3,7 @@ import UserAPI from "../../../apis/user.api.jsx";
 import { useNotification } from "../../../contexts/notification.context.jsx";
 import { Form, Input, Button, Typography } from "antd";
 import { FaArrowLeft } from "react-icons/fa";
+import { trimValue, validateEmail } from "../../../utils/form-validation.util.js";
 
 const { Title, Paragraph } = Typography;
 
@@ -16,17 +17,18 @@ const ForgetPassword = ({ setView, setResetEmail }) => {
       event.preventDefault();
     }
 
-    if (!email) {
+    const validationError = validateEmail(email);
+    if (validationError) {
       api.warning({
-        message: "Thiếu thông tin",
-        description: "Vui lòng nhập email",
+        message: "Email không hợp lệ",
+        description: validationError,
         placement: "topRight",
       });
       return;
     }
 
     setLoading(true);
-    const result = await UserAPI.forgotPassword(email);
+    const result = await UserAPI.forgotPassword(trimValue(email));
     setLoading(false);
 
     if (result.isSuccess) {
@@ -35,7 +37,7 @@ const ForgetPassword = ({ setView, setResetEmail }) => {
         description: result.message,
         placement: "topRight",
       });
-      setResetEmail(email);
+      setResetEmail(trimValue(email));
       setView("verify-otp");
     } else {
       api.error({
@@ -69,6 +71,7 @@ const ForgetPassword = ({ setView, setResetEmail }) => {
           <Input
             required
             type="email"
+            maxLength={255}
             placeholder="Nhập email của bạn"
             value={email}
             onChange={(event) => setEmail(event.target.value)}

@@ -3,6 +3,7 @@ import UserAPI from "../../../apis/user.api.jsx";
 import { useNotification } from "../../../contexts/notification.context.jsx";
 import { Form, Input, Button, Typography } from "antd";
 import { FaArrowLeft } from "react-icons/fa";
+import { trimValue, validateEmail, validateOtp } from "../../../utils/form-validation.util.js";
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -17,17 +18,18 @@ const VerifyOTP = ({ setView, resetEmail, setResetToken }) => {
       event.preventDefault();
     }
 
-    if (!otp || otp.length !== 6) {
+    const validationError = validateOtp(otp);
+    if (validationError) {
       api.warning({
-        message: "Lỗi",
-        description: "Mã OTP phải có 6 chữ số.",
+        message: "OTP không hợp lệ",
+        description: validationError,
         placement: "topRight",
       });
       return;
     }
 
     setLoading(true);
-    const result = await UserAPI.verifyResetOtp(resetEmail, otp);
+    const result = await UserAPI.verifyResetOtp(trimValue(resetEmail), trimValue(otp));
     setLoading(false);
 
     if (result.isSuccess) {
@@ -48,9 +50,17 @@ const VerifyOTP = ({ setView, resetEmail, setResetToken }) => {
   };
 
   const handleResend = async () => {
-    if (!resetEmail) return;
+    const validationError = validateEmail(resetEmail);
+    if (validationError) {
+      api.warning({
+        message: "Email không hợp lệ",
+        description: validationError,
+        placement: "topRight",
+      });
+      return;
+    }
     setResending(true);
-    const result = await UserAPI.forgotPassword(resetEmail);
+    const result = await UserAPI.forgotPassword(trimValue(resetEmail));
     setResending(false);
 
     if (result.isSuccess) {
@@ -93,6 +103,7 @@ const VerifyOTP = ({ setView, resetEmail, setResetToken }) => {
             length={6}
             value={otp}
             onChange={setOtp}
+            inputMode="numeric"
             size="large"
           />
         </Form.Item>

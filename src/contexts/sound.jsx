@@ -1,11 +1,23 @@
 import React, { createContext, useContext, useCallback, useState } from 'react';
+import { useAuth } from './auth.context.jsx';
 
 const SoundContext = createContext(null);
+const SOUND_URLS = {
+  default: "/sounds/default.mp3",
+  sound2: "/sounds/sound2.mp3",
+  sound3: "/sounds/sound3.mp3",
+  sound4: "/sounds/sound4.mp3",
+  sound5: "/sounds/sound5.mp3",
+  sound6: "/sounds/sound6.mp3",
+  sound7: "/sounds/sound7.mp3",
+  sound8: "/sounds/sound8.mp3",
+};
 
 // Export Sound để dùng
 export const useSound = () => useContext(SoundContext);
 
 export function SoundProvider({ children }) {
+  const { user } = useAuth();
   // Trạng thái bật tắt thông báo lưu trong localStorage
   const [isGlobalMuted, setIsGlobalMuted] = useState(() => {
     const muteUntil = localStorage.getItem("mute_until");
@@ -14,6 +26,12 @@ export function SoundProvider({ children }) {
 
   // Hàm phát âm thanh tin nhắn
   const playMessageSound = useCallback(() => {
+    const soundEnabled = user?.soundEnabled ?? user?.sound_enabled ?? true;
+
+    if (!soundEnabled) {
+      return;
+    }
+
     //Kiểm tra xem có đang bị tắt âm thanh không
     const muteUntil = localStorage.getItem("mute_until");
     if (muteUntil && Date.now() < parseInt(muteUntil)) {
@@ -26,8 +44,8 @@ export function SoundProvider({ children }) {
 
 
     try {
-      // Đọc link nhạc từ LocalStorage, nếu không có thì dùng mặc định Messenger - QuickSounds.com.mp3
-      const currentSound = localStorage.getItem("app_notification_sound") || '/sounds/default.mp3';
+      const soundId = user?.notificationSound || user?.notification_sound || "default";
+      const currentSound = SOUND_URLS[soundId] || SOUND_URLS.default;
       
       const audio = new Audio(currentSound);
       audio.volume = 0.5; 
@@ -36,7 +54,7 @@ export function SoundProvider({ children }) {
     } catch (error) {
       console.error("Lỗi hệ thống âm thanh:", error);
     }
-  }, [isGlobalMuted]);
+  }, [isGlobalMuted, user]);
 
    // cài đặt thời gian tắt thông báo
     const muteSound = (optionId) => {

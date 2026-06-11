@@ -1,14 +1,12 @@
-import React, { useState } from "react";
-import { Palette, ShieldCheck, Bell, KeyRound } from "lucide-react";
+import { useState } from "react";
+import { Palette, Bell, KeyRound } from "lucide-react";
 
 import InterfaceSet from "./components/InterfaceSet";
 import NotiSet from "./components/NotiSet";
-import PrivacySet from "./components/PrivacySet";
 import SecuritySet from "./components/SecuritySet";
 
 const SETTING_TABS = [
   { key: "THEME", label: "Giao diện", icon: <Palette size={19} /> },
-  { key: "PRIVACY", label: "Quyền riêng tư", icon: <ShieldCheck size={19} /> },
   { key: "NOTIFICATION", label: "Thông báo", icon: <Bell size={19} /> },
   { key: "ACCOUNT", label: "Tài khoản và bảo mật", icon: <KeyRound size={19} /> },
 ];
@@ -36,7 +34,7 @@ const SettingsPage = () => {
                   onClick={() => setActiveTab(tab.key)}
                   className={`w-full flex items-center gap-4 p-3 cursor-pointer transition-all duration-200 rounded-[10px] border-none outline-none
                     ${isActive ? "text-[#0033FF] font-bold" : "text-black bg-transparent hover:bg-[#EEF2F9]"}`}
-                  style={isActive ? { background: "linear-gradient(0deg, rgba(242, 230, 238, 0.3) 0%, rgba(151, 125, 255, 0.3) 100%)" } : {}}
+                  style={isActive ? { background: "var(--app-active-bg)" } : {}}
                 >
                   <span className={`flex items-center shrink-0 transition-colors ${isActive ? "text-[#0033FF]" : "text-gray-500"}`}>
                     {tab.icon}
@@ -55,7 +53,6 @@ const SettingsPage = () => {
       <div className="flex-1 flex flex-col overflow-hidden h-full">
         <div className="w-full h-full overflow-y-auto pr-1">
           {activeTab === "THEME" && <InterfaceSet />}
-          {activeTab === "PRIVACY" && <PrivacySet />}
           {activeTab === "NOTIFICATION" && <NotiSet />}
           {activeTab === "ACCOUNT" && <SecuritySet />}
         </div>

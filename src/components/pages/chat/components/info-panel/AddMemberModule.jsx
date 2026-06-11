@@ -1,13 +1,17 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "antd";
 import { X, Search, Users, Plus, Check } from "lucide-react";
+import { DEFAULT_AVATAR } from "../../../../../constants/asset.constants.js";
+import { getAvatarUrl, getDisplayName, getMemberId } from "../../../../../utils/identity.util.js";
+
+const getFriendUserId = (user) => getMemberId(user) || user?._id;
 
 export default function AddMemberModule({
   isOpen,
   onClose,
   onAddMembers,
   contacts = { people: [] },
-  existingMembers = [], // Danh sách thành viên hiện tại của nhóm
+  existingMembers = [],
   groupName = "",
   groupAvatar = ""
 }) {
@@ -16,29 +20,38 @@ export default function AddMemberModule({
   const [submitting, setSubmitting] = useState(false);
 
   const friendsList = useMemo(() => contacts?.people || [], [contacts?.people]);
-  const getFriendUserId = (user) => user?.userId || user?.user_id || user?.id || user?._id;
 
-  // Kiểm tra xem một user đã là thành viên cũ của nhóm chưa
-  const isAlreadyMember = (user) => {
+  const isAlreadyMember = useCallback((user) => {
     const userId = getFriendUserId(user);
     return existingMembers.some((m) => String(getFriendUserId(m)) === String(userId));
-  };
+  }, [existingMembers]);
 
-  // Gộp cả thành viên cũ và thành viên mới chọn để hiển thị trên thanh Tags
-  const allDisplayedMembers = useMemo(() => {
-    return [...existingMembers, ...selectedNewMembers];
-  }, [existingMembers, selectedNewMembers]);
+  const availableFriends = useMemo(
+    () => friendsList.filter((friend) => !isAlreadyMember(friend)),
+    [friendsList, isAlreadyMember]
+  );
 
-  // Gợi ý tìm kiếm thành viên mới (bỏ qua người cũ và người vừa chọn)
   const suggestions = useMemo(() => {
     const query = memberInput.trim().toLowerCase();
     if (!query) return [];
-    return friendsList.filter(
+    return availableFriends.filter(
       (user) =>
-        (user.name?.toLowerCase().includes(query) || user.email?.toLowerCase().includes(query)) &&
-        !allDisplayedMembers.find((m) => String(getFriendUserId(m)) === String(getFriendUserId(user)))
+        (
+          user.name?.toLowerCase().includes(query) ||
+          user.email?.toLowerCase().includes(query) ||
+          user.username?.toLowerCase().includes(query)
+        ) &&
+        !selectedNewMembers.find((m) => String(getFriendUserId(m)) === String(getFriendUserId(user)))
     );
-  }, [friendsList, memberInput, allDisplayedMembers]);
+  }, [availableFriends, memberInput, selectedNewMembers]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setMemberInput("");
+      setSelectedNewMembers([]);
+      setSubmitting(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -64,8 +77,9 @@ export default function AddMemberModule({
     if (selectedNewMembers.length === 0 || submitting) return;
     setSubmitting(true);
     try {
-      const newMemberIds = selectedNewMembers.map(getFriendUserId);
-      await onAddMembers?.(newMemberIds);
+      const newMemberIds = selectedNewMembers.map(getFriendUserId).filter(Boolean);
+      const result = await onAddMembers?.(newMemberIds);
+      if (result?.isSuccess === false) return;
       setSelectedNewMembers([]);
       setMemberInput("");
       onClose();
@@ -100,7 +114,7 @@ export default function AddMemberModule({
       </div>
 
       <div className="px-6 py-5 space-y-5">
-        {/* ── Tên nhóm và Ảnh nhóm (Bị Khóa cứng) ───────────────── */}
+        {/* ── Tên nhóm và Ảnh nhóm ───────────────── */}
         <div>
           <label className="mb-2 block text-[12px] font-black uppercase tracking-widest text-slate-400">
             Tên nhóm
@@ -122,47 +136,71 @@ export default function AddMemberModule({
           </div>
         </div>
 
-        {/* ── Chọn Thành Viên ───────────────────────── */}
+        {/* ── Thành viên hiện tại ───────────────────────── */}
         <div>
           <label className="mb-2 block text-[12px] font-black uppercase tracking-widest text-slate-400">
-            Thành viên ({allDisplayedMembers.length})
+            Thành viên hiện tại ({existingMembers.length})
           </label>
 
-          {/* Khối hiển thị thẻ thành viên */}
-          {allDisplayedMembers.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2 max-h-[120px] overflow-y-auto p-1">
-              {allDisplayedMembers.map((member) => {
-                const isOld = isAlreadyMember(member);
-                return (
-                  <div
-                    key={getFriendUserId(member)}
-                    className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-bold ${
-                      isOld ? "bg-gray-100 text-gray-400 select-none border border-gray-200" : "bg-[#EEF2FF] text-[#4F46E5]"
-                    }`}
-                  >
-                    <img
-                      src={member.avatar || member.avatarUrl || "https://via.placeholder.com/150"}
-                      alt=""
-                      className="h-5 w-5 rounded-full object-cover"
-                    />
-                    <span>{member.name}</span>
-                    {/* Chỉ thành viên mới thêm vào mới có nút loại bỏ X */}
-                    {!isOld && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveNewMember(getFriendUserId(member))}
-                        className="ml-0.5 text-[#6366F1] hover:text-red-500 transition-colors"
-                      >
-                        <X size={13} />
-                      </button>
-                    )}
+          {existingMembers.length > 0 ? (
+            <div className="mb-3 max-h-[150px] overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-2">
+              {existingMembers.map((member) => (
+                <div key={getFriendUserId(member)} className="flex items-center gap-3 rounded-xl px-2 py-2">
+                  <img
+                    src={getAvatarUrl(member, DEFAULT_AVATAR)}
+                    alt=""
+                    className="h-9 w-9 rounded-full object-cover border border-white"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-bold text-slate-800">
+                      {getDisplayName(member, "Thành viên")}
+                    </p>
+                    <p className="truncate text-[12px] text-slate-400">
+                      {member.email || member.username || "Đang trong nhóm"}
+                    </p>
                   </div>
-                );
-              })}
+                  <Check size={15} className="shrink-0 text-emerald-500" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mb-3 rounded-2xl bg-gray-50 px-4 py-3 text-[13px] font-semibold text-slate-400">
+              Chưa có dữ liệu thành viên.
+            </div>
+          )}
+        </div>
+
+        {/* ── Tìm bạn bè để thêm ───────────────────── */}
+        <div>
+          <label className="mb-2 block text-[12px] font-black uppercase tracking-widest text-slate-400">
+            Tìm bạn bè để thêm
+          </label>
+
+          {selectedNewMembers.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2 rounded-2xl bg-[#F8FAFF] p-2">
+              {selectedNewMembers.map((member) => (
+                <div
+                  key={getFriendUserId(member)}
+                  className="flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[13px] font-bold text-[#4F46E5]"
+                >
+                  <img
+                    src={getAvatarUrl(member, DEFAULT_AVATAR)}
+                    alt=""
+                    className="h-5 w-5 rounded-full object-cover border border-white"
+                  />
+                  <span>{getDisplayName(member, "Bạn bè")}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveNewMember(getFriendUserId(member))}
+                    className="ml-0.5 text-[#6366F1] hover:text-red-500 transition-colors"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Ô Tìm Kiếm thành viên mới */}
           <div className="relative">
             <div className="flex items-center gap-2 rounded-2xl border-2 border-transparent bg-[#F0F4FF] px-4 py-3 transition focus-within:border-[#6366F1]/40 focus-within:bg-white">
               <Search size={16} className="shrink-0 text-slate-400" />
@@ -199,33 +237,34 @@ export default function AddMemberModule({
           </div>
         </div>
 
-        {/* ── Danh Sách Bạn Bè Gần Đây ────────────────── */}
-        {friendsList.length > 0 && (
+        {/* ── Danh Sách Bạn Bè Có Thể Thêm ────────────────── */}
+        {availableFriends.length > 0 && (
           <div>
             <label className="mb-3 block text-[12px] font-black uppercase tracking-widest text-slate-400">
-              Bạn bè gần đây
+              Bạn bè có thể thêm
             </label>
             <div className="space-y-1.5 max-h-[240px] overflow-y-auto pr-1">
-              {friendsList.map((friend) => {
+              {availableFriends.map((friend) => {
                 const friendId = getFriendUserId(friend);
-                const isOld = isAlreadyMember(friend);
                 const isSelectedNew = selectedNewMembers.some((m) => String(getFriendUserId(m)) === String(friendId));
 
                 return (
                   <div
                     key={friendId}
                     className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 transition ${
-                      isOld ? "bg-gray-50 opacity-70" : isSelectedNew ? "bg-[#EEF2FF]" : "hover:bg-[#F8FAFF]"
+                      isSelectedNew ? "bg-[#EEF2FF]" : "hover:bg-[#F8FAFF]"
                     }`}
                   >
-                    <img src={friend.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    <img src={getAvatarUrl(friend, DEFAULT_AVATAR)} alt="" className="h-10 w-10 rounded-full object-cover" />
                     <div className="flex-1 min-w-0">
-                      <p className="truncate text-[14px] font-bold text-slate-800">{friend.name}</p>
+                      <p className="truncate text-[14px] font-bold text-slate-800">
+                        {getDisplayName(friend, "Bạn bè")}
+                      </p>
+                      <p className="truncate text-[12px] text-slate-400">{friend.email || friend.username || "Bạn bè"}</p>
                     </div>
                     
                     <button
                       type="button"
-                      disabled={isOld}
                       onClick={() => {
                         if (isSelectedNew) {
                           handleRemoveNewMember(friendId);
@@ -234,19 +273,23 @@ export default function AddMemberModule({
                         }
                       }}
                       className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${
-                        isOld
-                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                          : isSelectedNew
+                        isSelectedNew
                           ? "bg-[#6366F1] text-white hover:bg-red-500"
                           : "bg-[#F0F4FF] text-[#6366F1] hover:bg-[#E0E7FF]"
                       }`}
                     >
-                      {isOld || isSelectedNew ? <Check size={15} /> : <Plus size={15} />}
+                      {isSelectedNew ? <Check size={15} /> : <Plus size={15} />}
                     </button>
                   </div>
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {availableFriends.length === 0 && (
+          <div className="rounded-2xl bg-gray-50 px-4 py-3 text-center text-[13px] font-semibold text-slate-400">
+            Không còn bạn bè nào để thêm vào nhóm.
           </div>
         )}
 

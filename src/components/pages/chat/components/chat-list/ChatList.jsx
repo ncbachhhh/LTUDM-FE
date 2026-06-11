@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Spin, Typography } from "antd";
 import SearchBar from "./SearchBar.jsx";
-import UnreadFilter from "./UnreadFilter";
 import AddFriendModule from "./AddFriendModule.jsx";
 import UserProfileModule from "./UserProfileModule.jsx";
 import ContactItem from "./ContactItem.jsx";
@@ -17,6 +16,8 @@ export default function ChatList({
   onSelect,
   onOpenDirectConversation,
   onCreateGroup,
+  onDeleteConversation,
+  onBlockUser,
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalView, setModalView] = useState("search");
@@ -31,109 +32,78 @@ export default function ChatList({
   }, [currentConvoId]);
 
   useEffect(() => {
-    setPeople((prev) => {
-      // 1. Map dữ liệu thô từ contacts
-      const mapped = (contacts?.people || []).map((p, index) => {
-        const existing = prev.find((item) => item.id === p.id);
-        return {
-          ...p,
-          msg: p.message,
-          unread: Boolean(p.unread || p.unreadCount > 0),
-          unreadCount: p.unreadCount || 0,
-          pinned: existing ? existing.pinned : false,
-          order: index,
-        };
-      });
-
-      // 2. Sắp xếp: Ai được ghim (pinned === true) nhảy lên đầu cứng luôn
-      return [...mapped].sort((a, b) => {
-        if (a.pinned !== b.pinned) return b.pinned - a.pinned;
-        return a.order - b.order;
-      });
-    });
+    setPeople(
+      (contacts?.people || []).map((p) => ({
+        ...p,
+        msg: p.message,
+        unread: Boolean(p.unread || p.unreadCount > 0),
+        unreadCount: p.unreadCount || 0,
+      }))
+    );
   }, [contacts?.people]);
 
   useEffect(() => {
-    setGroups((prev) => {
-      // 1. Map dữ liệu thô từ contacts
-      const mapped = (contacts?.groups || []).map((g, index) => {
-        const existing = prev.find((item) => item.id === g.id);
-        return {
-          ...g,
-          msg: g.message || "Chưa có tin nhắn",
-          unread: Boolean(g.unread || g.unreadCount > 0),
-          unreadCount: g.unreadCount || 0,
-          pinned: existing ? existing.pinned : false,
-          order: index,
-        };
-      });
-
-      // 2. Sắp xếp: Ai được ghim (pinned === true) nhảy lên đầu cứng luôn
-      return [...mapped].sort((a, b) => {
-        if (a.pinned !== b.pinned) return b.pinned - a.pinned;
-        return a.order - b.order;
-      });
-    });
+    setGroups(
+      (contacts?.groups || []).map((g) => ({
+        ...g,
+        msg: g.message || "Chưa có tin nhắn",
+        unread: Boolean(g.unread || g.unreadCount > 0),
+        unreadCount: g.unreadCount || 0,
+      }))
+    );
   }, [contacts?.groups]);
 
     // Mock handleCreateGroup removed
 
-  const handleChatAction = (type, chatId) => {
-    // Tự động kiểm tra xem cuộc trò chuyện này thuộc loại nào để áp số lượng giới hạn ghim
-    const isPeopleChat = people.some((p) => p.id === chatId);
-    const maxPinned = isPeopleChat ? 3 : 2; 
-    const chatTypeLabel = isPeopleChat ? "hội thoại cá nhân" : "nhóm chat";
+  const removeChatLocally = (chatId) => {
+    setPeople((prev) => prev.filter((item) => item.id !== chatId));
+    setGroups((prev) => prev.filter((item) => item.id !== chatId));
+  };
 
-    const updateList = (list) => {
-      // Nếu chatId đang chọn không nằm trong mảng này thì giữ nguyên mảng, không xử lý lãng phí
-      if (!list.some((p) => p.id === chatId)) return list;
+  const markChatUnreadLocally = (chatId, unread) => {
+    setPeople((prev) => prev.map((item) => (item.id === chatId ? { ...item, unread } : item)));
+    setGroups((prev) => prev.map((item) => (item.id === chatId ? { ...item, unread } : item)));
+  };
 
-      switch (type) {
-        case "PIN": {
-          const pinnedCount = list.filter((p) => p.pinned).length;
-          const target = list.find((p) => p.id === chatId);
-          const isCurrentlyPinned = target?.pinned;
+  const handleChatAction = async (type, chatId) => {
+    const directChat = people.find((item) => item.id === chatId);
+    const groupChat = groups.find((item) => item.id === chatId);
+    const targetChat = directChat || groupChat;
+    if (!targetChat) return;
 
-          // Áp dụng giới hạn động (3 cho người, 2 cho nhóm)
-          if (!isCurrentlyPinned && pinnedCount >= maxPinned) {
-            Modal.warning({
-              title: "Không thể ghim thêm",
-              content: `Tối đa chỉ ghim được ${maxPinned} ${chatTypeLabel}!`,
-              okText: "Đồng ý",
-            });
-            return list;
-          }
+    if (type === "READ") {
+      markChatUnreadLocally(chatId, false);
+      return;
+    }
 
-          const updated = list.map((p) =>
-            p.id === chatId
-              ? { ...p, pinned: !p.pinned, lastPinnedAt: !isCurrentlyPinned ? Date.now() : 0 }
-              : p
-          );
+    if (type === "DELETE") {
+      Modal.confirm({
+        title: "Xóa đoạn chat?",
+        content: "Toàn bộ tin nhắn hiện tại sẽ không hiển thị với bạn. Người khác vẫn thấy lịch sử của họ.",
+        okText: "Xóa",
+        okButtonProps: { danger: true },
+        cancelText: "Hủy",
+        onOk: async () => {
+          const success = await onDeleteConversation?.(targetChat.conversation_id || targetChat.id);
+          if (success) removeChatLocally(chatId);
+        },
+      });
+      return;
+    }
 
-          return [...updated].sort((a, b) => {
-            if (a.pinned !== b.pinned) return b.pinned - a.pinned;
-            if (a.pinned && b.pinned) return b.lastPinnedAt - a.lastPinnedAt;
-            return a.order - b.order;
-          });
-        }
-
-        case "HIDE":
-        case "BLOCK":
-          return list.filter((p) => p.id !== chatId);
-
-        case "MARK_UNREAD":
-          return list.map((p) => (p.id === chatId ? { ...p, unread: true } : p));
-
-        case "READ":
-          return list.map((p) => (p.id === chatId ? { ...p, unread: false } : p));
-
-        default:
-          return list;
-      }
-    };
-
-    setPeople((prev) => updateList(prev));
-    setGroups((prev) => updateList(prev));
+    if (type === "BLOCK" && directChat?.userId) {
+      Modal.confirm({
+        title: `Chặn ${directChat.name}?`,
+        content: "Bạn sẽ không nhận hoặc gửi tin nhắn với người này cho đến khi bỏ chặn.",
+        okText: "Chặn",
+        okButtonProps: { danger: true },
+        cancelText: "Hủy",
+        onOk: async () => {
+          const success = await onBlockUser?.(directChat.userId, directChat.conversation_id || directChat.id);
+          if (success) removeChatLocally(chatId);
+        },
+      });
+    }
   };
 
   const handleOpenAddFriend = () => {
@@ -161,14 +131,8 @@ export default function ChatList({
         <SearchBar contacts={contacts} />
       </div>
 
-      {/* Bộ lọc chưa đọc */}
-      <div className="flex items-center gap-3 px-1">
-        <Text strong className="text-[14px] text-slate-800">Chưa đọc</Text>
-        <UnreadFilter initialEnabled={false} />
-      </div>
-
       {/* Danh sách hội thoại cá nhân */}
-      <div className="flex min-h-0 flex-[1.55] flex-col overflow-hidden rounded-[10px] bg-white p-5 shadow-sm">
+      <div className="flex min-h-0 flex-[1.45] flex-col overflow-hidden rounded-[10px] bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between shrink-0">
           <Text strong className="text-base text-slate-800 uppercase tracking-wider">People</Text>
           <button
@@ -198,8 +162,8 @@ export default function ChatList({
                 isUnread={user.unread}
                 isOnline={user.isActive}
                 unreadCount={user.unreadCount}
-                isPinned={user.pinned}
                 isActive={selectedChat === user.id}
+                canBlock
                 onAction={handleChatAction}
                 onClick={() => handleSelect(user.id)}
               />
@@ -213,7 +177,7 @@ export default function ChatList({
       </div>
 
       {/* Danh sách nhóm chat */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] bg-white p-5 shadow-sm">
+      <div className="flex min-h-0 flex-[1.15] flex-col overflow-hidden rounded-[10px] bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between shrink-0">
           <Text strong className="text-base text-slate-800 uppercase tracking-wider">Group</Text>
           <button
@@ -242,7 +206,6 @@ export default function ChatList({
                 avatar={group.avatar}
                 isUnread={group.unread}
                 unreadCount={group.unreadCount}
-                isPinned={group.pinned}
                 isActive={selectedChat === group.id}
                 onAction={handleChatAction}
                 onClick={() => handleSelect(group.id)}

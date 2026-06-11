@@ -101,6 +101,8 @@ export const mapConversationToContact = (conversation, currentUserId) => {
     : getAvatarUrl(otherMember, DEFAULT_AVATAR);
   const isActive = !isGroup && getOnlineStatus(otherMember);
   const unreadCount = getUnreadCount(conversation);
+  const mutedUntil = conversation.muted_until || conversation.mutedUntil || null;
+  const emoji = conversation.emoji || "👍";
 
   return {
     id: conversation.id,
@@ -128,6 +130,9 @@ export const mapConversationToContact = (conversation, currentUserId) => {
         friendshipStatus === FRIENDSHIP_STATUS.accepted),
     unreadCount,
     unread: unreadCount > 0,
+    mutedUntil,
+    isMuted: mutedUntil ? new Date(mutedUntil).getTime() > Date.now() : false,
+    emoji,
     members,
     raw: conversation,
     stats: DEFAULT_CONVERSATION_STATS,
@@ -151,18 +156,59 @@ export const getRawConversations = (contacts) => [
   ...(contacts.groups || []).map((item) => item.raw || item),
 ];
 
+const mergeConversationPayload = (existingConversation, updatedConversation) => {
+  const baseConversation = existingConversation?.raw || existingConversation || {};
+  const mergedConversation = {
+    ...baseConversation,
+    ...updatedConversation,
+  };
+
+  const hasRelationshipState =
+    updatedConversation.friendship_status != null ||
+    updatedConversation.friendshipStatus != null;
+
+  if (!hasRelationshipState) {
+    mergedConversation.friendship_status =
+      baseConversation.friendship_status ?? baseConversation.friendshipStatus;
+    mergedConversation.friendshipStatus =
+      baseConversation.friendshipStatus ?? baseConversation.friendship_status;
+    mergedConversation.friendship_direction =
+      baseConversation.friendship_direction ?? baseConversation.friendshipDirection;
+    mergedConversation.friendshipDirection =
+      baseConversation.friendshipDirection ?? baseConversation.friendship_direction;
+    mergedConversation.blocked_by_current_user =
+      baseConversation.blocked_by_current_user ?? baseConversation.blockedByCurrentUser;
+    mergedConversation.blockedByCurrentUser =
+      baseConversation.blockedByCurrentUser ?? baseConversation.blocked_by_current_user;
+    mergedConversation.current_user_blocked =
+      baseConversation.current_user_blocked ?? baseConversation.currentUserBlocked;
+    mergedConversation.currentUserBlocked =
+      baseConversation.currentUserBlocked ?? baseConversation.current_user_blocked;
+  }
+
+  return mergedConversation;
+};
+
 export const mergeConversation = (contacts, updatedConversation, currentUserId) => {
   const existingConversations = getRawConversations(contacts);
   const nextConversations = existingConversations.some(
     (conversation) => conversation.id === updatedConversation.id
   )
     ? existingConversations.map((conversation) =>
-        conversation.id === updatedConversation.id ? updatedConversation : conversation
+        conversation.id === updatedConversation.id
+          ? mergeConversationPayload(conversation, updatedConversation)
+          : conversation
       )
     : [updatedConversation, ...existingConversations];
 
   return mapConversationsToContacts(nextConversations, currentUserId);
 };
+
+export const mergeConversationForContact = (currentContact, updatedConversation, currentUserId) =>
+  mapConversationToContact(
+    mergeConversationPayload(currentContact, updatedConversation),
+    currentUserId
+  );
 
 export const applyPresenceToContact = (contact, userId, online, currentUserId) => {
   if (contact.isGroup) return contact;

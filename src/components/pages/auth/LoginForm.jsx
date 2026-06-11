@@ -5,6 +5,12 @@ import { useAuth } from "../../../contexts/auth.context.jsx";
 import { useNotification } from "../../../contexts/notification.context.jsx";
 import { Form, Input, Button, Typography } from "antd";
 import { FaArrowLeft } from "react-icons/fa";
+import {
+    getFirstValidationError,
+    trimValue,
+    validateEmail,
+    validateRequired,
+} from "../../../utils/form-validation.util.js";
 
 const { Title } = Typography;
 
@@ -34,10 +40,15 @@ const LoginForm = ({ setView }) => {
             event.preventDefault();
         }
 
-        if (!formData.email || !formData.password) {
+        const validationError = getFirstValidationError([
+            () => validateEmail(formData.email),
+            () => validateRequired(formData.password, "Mật khẩu"),
+        ]);
+
+        if (validationError) {
             api.warning({
-                message: "Thiếu thông tin",
-                description: "Vui lòng nhập đầy đủ email và mật khẩu",
+                message: "Thông tin không hợp lệ",
+                description: validationError,
                 placement: "topRight",
             });
             return;
@@ -46,7 +57,7 @@ const LoginForm = ({ setView }) => {
         setLoading(true);
 
         const result = await UserAPI.login({
-            email: formData.email,
+            email: trimValue(formData.email),
             password: formData.password,
         });
 
@@ -92,6 +103,7 @@ const LoginForm = ({ setView }) => {
                         value={formData.email}
                         onChange={handleChange}
                         type="email"
+                        maxLength={255}
                         placeholder="Nhập email"
                         size="large"
                         className="w-full !p-4 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"
@@ -103,6 +115,8 @@ const LoginForm = ({ setView }) => {
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
+                        minLength={1}
+                        maxLength={72}
                         placeholder="Nhập mật khẩu"
                         size="large"
                         className="w-full !p-4 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"

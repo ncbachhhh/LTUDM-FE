@@ -29,8 +29,11 @@ const MainLayout = () => {
         });
 
         //lắng nghe tin nhắn mới để phát âm thanh thông báo
-        conversationSub = await WebSocketAPI.subscribeConversationUpdates((updatedConversation) => {
+        conversationSub = await WebSocketAPI.subscribeConversationUpdates((payload) => {
+          const updatedConversation = payload?.conversation || payload;
           if (!updatedConversation?.id) return;
+          const mutedUntil = updatedConversation?.muted_until || updatedConversation?.mutedUntil;
+          const isMuted = mutedUntil ? new Date(mutedUntil).getTime() > Date.now() : false;
           
           const newMsg = updatedConversation?.latest_message || updatedConversation?.lastMessage;
           
@@ -41,7 +44,7 @@ const MainLayout = () => {
              const isFromOtherPerson = senderId && String(senderId) !== String(currentUserId);
              
              // Nếu là người khác gửi VÀ tin nhắn này chưa từng được kêu chuông
-             if (isFromOtherPerson && !playedSoundMessageIds.current.has(msgId)) {
+             if (isFromOtherPerson && !isMuted && !playedSoundMessageIds.current.has(msgId)) {
                 playMessageSound(); 
                 playedSoundMessageIds.current.add(msgId);
              }
@@ -62,7 +65,10 @@ const MainLayout = () => {
   }, [loading, user,playMessageSound]);
 
   return (
-    <Layout style={{ height: '100vh', width: '100vw', overflow: 'hidden', flexDirection: 'row' }}>
+    <Layout
+      className="app-shell"
+      style={{ height: '100vh', width: '100vw', overflow: 'hidden', flexDirection: 'row' }}
+    >
       {/* THANH ĐIỀU HƯỚNG BÊN TRÁI (SIDER CỐ ĐỊNH) */}
       <Sider 
         width={80} 
@@ -76,7 +82,15 @@ const MainLayout = () => {
       </Sider>
 
       {/* VÙNG BÊN PHẢI (CONTENT CHÍNH) */}
-      <Content style={{ background: '#ffffff', height: '100%', overflow: 'hidden' }}>
+      <Content
+        className="app-content"
+        style={{
+          background: "var(--app-bg)",
+          color: "var(--app-text)",
+          height: "100%",
+          overflow: "hidden",
+        }}
+      >
         <Outlet /> 
       </Content>
     </Layout>

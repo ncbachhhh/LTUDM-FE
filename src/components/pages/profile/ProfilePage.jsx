@@ -10,7 +10,7 @@ import { useAuth } from "../../../contexts/auth.context.jsx";
 import UserAPI from "../../../apis/user.api.jsx";
 import FriendshipAPI from "../../../apis/friendship.api.jsx";
 
-export default function ProfilePage({ isOpen, onClose, profileData, onOpenEdit, onSave }) {
+export default function ProfilePage({ isOpen, onClose, onOpenEdit }) {
   const { user, getProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showMenu, setShowMenu] = useState(false); // Điều khiển menu Xem/Thay
@@ -30,7 +30,9 @@ export default function ProfilePage({ isOpen, onClose, profileData, onOpenEdit, 
   });
 
   useEffect(() => {
-    if (user) {
+    if (!user) return undefined;
+
+    const timerId = window.setTimeout(() => {
       setProfile({
         name: user.displayName || user.display_name || user.username || "Người dùng",
         avatarUrl: user.avatarUrl || user.avatar_url || DEFAULT_AVATAR,
@@ -41,7 +43,9 @@ export default function ProfilePage({ isOpen, onClose, profileData, onOpenEdit, 
         nickname: user.nickname || "",
         bio: user.bio || "",
       });
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
   }, [user]);
 
   useEffect(() => {

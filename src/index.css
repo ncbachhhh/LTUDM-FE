@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+:root {
+  --app-accent: #0033ff;
+  --chat-bubble-bg: #0033ff;
+  --app-bg: #ffffff;
+  --app-page-bg: #e9ecf6;
+  --app-panel-bg: #ffffff;
+  --app-elevated-bg: #ffffff;
+  --app-soft-bg: #f3f6fb;
+  --app-hover-bg: #eef2f9;
+  --app-active-bg: linear-gradient(0deg, rgba(242, 230, 238, 0.3) 0%, rgba(151, 125, 255, 0.3) 100%);
+  --app-text: #111827;
+  --app-muted-text: #6b7280;
+  --app-border: #e5e7eb;
+  --side-active-bg: #e8eefb;
+}
+
+:root[data-theme="dark"] {
+  --app-bg: #0b1020;
+  --app-page-bg: #0f172a;
+  --app-panel-bg: #151f33;
+  --app-elevated-bg: #1b2740;
+  --app-soft-bg: #111a2d;
+  --app-hover-bg: #22304b;
+  --app-active-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.22) 0%, rgba(124, 58, 237, 0.18) 100%);
+  --app-text: #e7edf8;
+  --app-muted-text: #9aa7bb;
+  --app-border: #2a3955;
+  --side-active-bg: #10182b;
+}
+
 html,
 body,
 #root {
@@ -11,9 +41,185 @@ body,
 }
 
 body {
+  background: var(--app-bg);
+  color: var(--app-text);
   font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="dark"] .ant-layout,
+:root[data-theme="dark"] .app-shell,
+:root[data-theme="dark"] .app-content {
+  background: var(--app-bg) !important;
+  color: var(--app-text);
+}
+
+:root[data-theme="dark"] .bg-\[\#E9ECF6\],
+:root[data-theme="dark"] .bg-\[\#e9ecf6\] {
+  background-color: var(--app-page-bg) !important;
+}
+
+:root[data-theme="dark"] .bg-white {
+  background-color: var(--app-panel-bg) !important;
+}
+
+:root[data-theme="dark"] .bg-\[\#f9fafb\],
+:root[data-theme="dark"] .bg-\[\#F9FAFB\] {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(59, 130, 246, 0.08), transparent 34%),
+    var(--app-bg) !important;
+}
+
+:root[data-theme="dark"] .bg-\[\#E8EEFB\],
+:root[data-theme="dark"] .bg-\[\#D1DCFE\],
+:root[data-theme="dark"] .bg-\[\#d1dcfe\],
+:root[data-theme="dark"] .bg-\[\#EBF1FA\],
+:root[data-theme="dark"] .bg-\[\#F1F2F6\],
+:root[data-theme="dark"] .bg-\[\#F0F2F5\],
+:root[data-theme="dark"] .bg-\[\#F0F4FF\],
+:root[data-theme="dark"] .bg-\[\#EEF2F9\],
+:root[data-theme="dark"] .bg-\[\#eef1f6\],
+:root[data-theme="dark"] .bg-\[\#f1f2f4\],
+:root[data-theme="dark"] .bg-\[\#e5f1ff\],
+:root[data-theme="dark"] .bg-blue-50,
+:root[data-theme="dark"] .bg-\[\#EFF2F8\],
+:root[data-theme="dark"] .bg-\[\#EDEDEE\],
+:root[data-theme="dark"] .bg-\[\#F3F4F1\],
+:root[data-theme="dark"] .bg-gray-50,
+:root[data-theme="dark"] .bg-gray-100,
+:root[data-theme="dark"] .bg-slate-50 {
+  background-color: var(--app-soft-bg) !important;
+}
+
+:root[data-theme="dark"] .text-black,
+:root[data-theme="dark"] .text-\[\#050505\],
+:root[data-theme="dark"] .text-gray-700,
+:root[data-theme="dark"] .text-gray-800,
+:root[data-theme="dark"] .text-gray-900,
+:root[data-theme="dark"] .text-slate-700,
+:root[data-theme="dark"] .text-slate-800,
+:root[data-theme="dark"] .text-slate-900 {
+  color: var(--app-text) !important;
+}
+
+:root[data-theme="dark"] .text-gray-400,
+:root[data-theme="dark"] .text-gray-500,
+:root[data-theme="dark"] .text-slate-400,
+:root[data-theme="dark"] .text-slate-500 {
+  color: var(--app-muted-text) !important;
+}
+
+:root[data-theme="dark"] .border-gray-50,
+:root[data-theme="dark"] .border-gray-100,
+:root[data-theme="dark"] .border-gray-200,
+:root[data-theme="dark"] .border-gray-300,
+:root[data-theme="dark"] .border-slate-200,
+:root[data-theme="dark"] .border-\[\#9B9B9B\] {
+  border-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] .hover\:bg-\[\#EEF2F9\]:hover,
+:root[data-theme="dark"] .hover\:bg-\[\#f1f2f4\]:hover,
+:root[data-theme="dark"] .hover\:bg-\[\#F1F2F4\]:hover,
+:root[data-theme="dark"] .hover\:bg-\[\#E5F1FF\]:hover,
+:root[data-theme="dark"] .hover\:bg-\[\#E5f1ff\]:hover,
+:root[data-theme="dark"] .hover\:bg-\[\#e5f1ff\]:hover,
+:root[data-theme="dark"] .hover\:bg-gray-50:hover,
+:root[data-theme="dark"] .hover\:bg-gray-100:hover,
+:root[data-theme="dark"] .hover\:bg-gray-200:hover,
+:root[data-theme="dark"] .hover\:bg-slate-50:hover,
+:root[data-theme="dark"] .hover\:bg-blue-50:hover {
+  background-color: var(--app-hover-bg) !important;
+}
+
+:root[data-theme="dark"] .ant-modal-root,
+:root[data-theme="dark"] .ant-modal-wrap {
+  background: transparent !important;
+  color: var(--app-text) !important;
+}
+
+:root[data-theme="dark"] .ant-modal-container {
+  background: var(--app-elevated-bg) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: 18px !important;
+  color: var(--app-text) !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+:root[data-theme="dark"] .ant-modal,
+:root[data-theme="dark"] .ant-modal-content,
+:root[data-theme="dark"] .ant-modal-header,
+:root[data-theme="dark"] .ant-modal-body,
+:root[data-theme="dark"] .ant-modal-footer,
+:root[data-theme="dark"] .ant-modal-confirm-body-wrapper,
+:root[data-theme="dark"] .ant-dropdown-menu,
+:root[data-theme="dark"] .ant-popover-inner {
+  background: var(--app-elevated-bg) !important;
+  color: var(--app-text) !important;
+}
+
+:root[data-theme="dark"] .ant-modal-content {
+  border: 1px solid var(--app-border) !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55) !important;
+}
+
+:root[data-theme="dark"] .ant-modal-header {
+  border-bottom-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] .ant-modal-footer {
+  border-top-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] .ant-modal-mask {
+  background: rgba(3, 7, 18, 0.72) !important;
+}
+
+:root[data-theme="dark"] .ant-modal-title,
+:root[data-theme="dark"] .ant-modal-close,
+:root[data-theme="dark"] .ant-modal-close-x,
+:root[data-theme="dark"] .ant-dropdown-menu-title-content,
+:root[data-theme="dark"] .ant-typography,
+:root[data-theme="dark"] .ant-list-item-meta-title,
+:root[data-theme="dark"] .ant-list-item-meta-description {
+  color: var(--app-text) !important;
+}
+
+:root[data-theme="dark"] .ant-input,
+:root[data-theme="dark"] .ant-input-affix-wrapper,
+:root[data-theme="dark"] .ant-select-selector,
+:root[data-theme="dark"] textarea {
+  background: var(--app-soft-bg) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+:root[data-theme="dark"] .ant-input::placeholder,
+:root[data-theme="dark"] textarea::placeholder,
+:root[data-theme="dark"] input::placeholder {
+  color: var(--app-muted-text) !important;
+}
+
+:root[data-theme="dark"] .ant-btn-default {
+  background: var(--app-soft-bg) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+:root[data-theme="dark"] .ant-list-item {
+  border-color: var(--app-border) !important;
+}
+
+.chat-info-button-active {
+  background: rgba(0, 51, 255, 0.08);
+}
+
+:root[data-theme="dark"] .chat-info-button-active {
+  background: var(--app-active-bg);
 }
 
 * {

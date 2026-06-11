@@ -103,6 +103,19 @@ const WebSocketAPI = {
     });
   },
 
+  subscribeConversationRead: async (conversationId, callback) => {
+    const client = await WebSocketAPI.connect();
+    const topic = `/topic/conversation/${conversationId}/read`;
+
+    console.log("SUBSCRIBE:", topic);
+
+    return client.subscribe(topic, (message) => {
+      const data = parseMessage(message);
+      console.log("RECEIVE READ EVENT:", data);
+      callback(data);
+    });
+  },
+
   subscribeConversationUpdates: async (callback) => {
     const client = await WebSocketAPI.connect();
     const topic = "/user/queue/conversations";
@@ -149,7 +162,7 @@ const WebSocketAPI = {
         body: JSON.stringify({
           content,
           type: "TEXT",
-          parentId: parentId || null,
+          reply_to_message_id: parentId || null,
         }),
       });
 
@@ -164,6 +177,40 @@ const WebSocketAPI = {
         isSuccess: false,
         message: "Khong ket noi duoc socket",
       };
+    }
+  },
+
+  sendReadReceipt: async (conversationId) => {
+    try {
+      const client = await WebSocketAPI.connect();
+      if (!client.connected) return { isSuccess: false, message: "Socket chua ket noi" };
+
+      client.publish({
+        destination: `/app/chat/${conversationId}/read`,
+        body: JSON.stringify({}),
+      });
+
+      return { isSuccess: true };
+    } catch (error) {
+      console.error("Send read receipt error:", error);
+      return { isSuccess: false, message: "Khong gui duoc trang thai da doc" };
+    }
+  },
+
+  sendTyping: async (conversationId, typing = true) => {
+    try {
+      const client = await WebSocketAPI.connect();
+      if (!client.connected) return { isSuccess: false, message: "Socket chua ket noi" };
+
+      client.publish({
+        destination: `/app/chat/${conversationId}/typing`,
+        body: JSON.stringify({ typing }),
+      });
+
+      return { isSuccess: true };
+    } catch (error) {
+      console.error("Send typing error:", error);
+      return { isSuccess: false, message: "Khong gui duoc trang thai dang nhap" };
     }
   },
 

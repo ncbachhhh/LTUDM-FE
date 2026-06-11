@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Tooltip } from "antd";
 import { FaPaperPlane, FaPaperclip, FaImage } from "react-icons/fa";
 import { useNotification } from "../../../../../contexts/notification.context.jsx";
@@ -7,6 +7,7 @@ export default function ChatInput({
   currentEmoji = "👍",
   onSendMessage,
   onSendFileMessage,
+  onTypingChange,
   replyingMsg,
   onCancelReply,
 }) {
@@ -17,8 +18,17 @@ export default function ChatInput({
 
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const textInputRef = useRef(null);
 
   const hasText = text.trim() !== "";
+
+  useEffect(() => {
+    if (!replyingMsg) return;
+
+    requestAnimationFrame(() => {
+      textInputRef.current?.focus();
+    });
+  }, [replyingMsg]);
 
   const handleSendMessage = async () => {
     const content = text.trim();
@@ -83,6 +93,12 @@ export default function ChatInput({
       event.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleTextChange = (event) => {
+    const nextText = event.target.value;
+    setText(nextText);
+    onTypingChange?.(nextText.trim() !== "");
   };
 
   const getReplyPreview = (message) => {
@@ -161,9 +177,10 @@ export default function ChatInput({
         {/* Ô nhập tin nhắn */}
         <div className="flex-1 flex rounded-full bg-[#0033FF]/5 items-center overflow-hidden">
           <input
+            ref={textInputRef}
             type="text"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             className="w-full h-full px-6 py-4 bg-transparent text-sm font-medium outline-none"
             placeholder="Nhập tin nhắn..."

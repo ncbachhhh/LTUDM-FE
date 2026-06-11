@@ -14,6 +14,9 @@ const API_URL = {
   FORGOT_PASSWORD: `${API_BASE_URL}/auth/forgot-password`,
   VERIFY_RESET_OTP: `${API_BASE_URL}/auth/verify-reset-otp`,
   RESET_PASSWORD: `${API_BASE_URL}/auth/reset-password`,
+  UPDATE_SETTINGS: `${API_BASE_URL}/users/settings`,
+  CHANGE_PASSWORD: `${API_BASE_URL}/users/me/change-password`,
+  DELETE_MY_ACCOUNT: `${API_BASE_URL}/users/me`,
 };
 
 const anonymousClient = axios.create();
@@ -196,6 +199,40 @@ const UserAPI = {
     } catch (error) {
       console.error("UPDATE PROFILE ERROR:", error);
       return failureResponse(error, "Cập nhật thông tin thất bại");
+    }
+  },
+
+  updateSettings: async (data) => {
+    try {
+      const response = await authorizedAxios().patch(API_URL.UPDATE_SETTINGS, data);
+      return successResponse(response);
+    } catch (error) {
+      console.error("UPDATE SETTINGS ERROR:", error);
+      return failureResponse(error, "Cập nhật cài đặt thất bại");
+    }
+  },
+
+  changePassword: async ({ currentPassword, newPassword, confirmPassword }) => {
+    try {
+      const response = await authorizedAxios().post(API_URL.CHANGE_PASSWORD, {
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
+      return successResponse(response);
+    } catch (error) {
+      console.error("CHANGE PASSWORD ERROR:", error);
+      return failureResponse(error, "Đổi mật khẩu thất bại");
+    }
+  },
+
+  deleteMyAccount: async () => {
+    try {
+      const response = await authorizedAxios().delete(API_URL.DELETE_MY_ACCOUNT);
+      return successResponse(response);
+    } catch (error) {
+      console.error("DELETE MY ACCOUNT ERROR:", error);
+      return failureResponse(error, "Xóa tài khoản thất bại");
     }
   },
 };

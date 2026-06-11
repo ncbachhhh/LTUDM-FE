@@ -10,7 +10,7 @@ import {
 import { getCurrentUserId } from "../../../../../utils/identity.util.js";
 import ChatInput from "./ChatInput.jsx";
 import MessageList from "./MessageList.jsx";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PinnedMessagesBar from "./PinnedMessagesBar.jsx";
 
 const { Text } = Typography;
@@ -27,6 +27,7 @@ export default function ChatWindow({
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [socketStatus, setSocketStatus] = useState("Đang kết nối...");
   const [errorMessage, setErrorMessage] = useState("");
+  const [remotePinnedMessages, setRemotePinnedMessages] = useState([]);
   const messageContainerRef = useRef(null);
 
   // Trạng thái phân trang tin nhắn
@@ -34,20 +35,24 @@ export default function ChatWindow({
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const lastMessageIdRef = useRef(null);
-  const pendingReplyRef = useRef(null);
+  const autoReadTimerRef = useRef(null);
+  const typingTimerRef = useRef(null);
+  const lastTypingStateRef = useRef(false);
 
   const currentUserId = getCurrentUserId(user);
   const conversationId =
     data?.conversation_id || data?.conversationId || data?.id;
 
-  const pinnedMessages = messages.filter((msg) => msg.isPinned);
+  const loadedPinnedMessages = messages.filter((msg) => msg.isPinned);
+  const pinnedMessages =
+    remotePinnedMessages.length > 0 ? remotePinnedMessages : loadedPinnedMessages;
   const latestPinnedMessage = pinnedMessages[pinnedMessages.length - 1];
 
   const getMessagePreview = (message) => {
     if (!message) return "";
 
-    if (message.isRecalled || message.isDeletedForMe)
-      return "Bạn đã xóa một tin nhắn";
+    if (message.isRecalled) return "Tin nhắn đã thu hồi";
+    if (message.isDeletedForMe) return "Bạn đã xóa một tin nhắn";
     if (message.type === "IMAGE") return "Hình ảnh";
     if (message.type === "FILE") return "Tệp đính kèm";
 
@@ -96,6 +101,42 @@ export default function ChatWindow({
     }
   };
 
+  useEffect(() => {
+    if (!conversationId) return undefined;
+
+    const handleExternalJump = (event) => {
+      const eventConversationId = event.detail?.conversationId || event.detail?.conversation_id;
+      const messageId = event.detail?.messageId || event.detail?.message_id;
+      if (String(eventConversationId) !== String(conversationId) || !messageId) return;
+      handleJumpToMessage(messageId);
+    };
+
+    window.addEventListener("conversation:jump-to-message", handleExternalJump);
+    return () => window.removeEventListener("conversation:jump-to-message", handleExternalJump);
+  }, [conversationId]);
+
+  const scheduleMarkConversationRead = useCallback(() => {
+    if (!conversationId) return;
+
+    window.clearTimeout(autoReadTimerRef.current);
+    autoReadTimerRef.current = window.setTimeout(() => {
+      WebSocketAPI.sendReadReceipt(conversationId).then((result) => {
+        if (!result?.isSuccess) {
+          MessageAPI.markConversationRead(conversationId);
+        }
+      });
+    }, 150);
+  }, [conversationId]);
+
+  const publishTypingState = useCallback(
+    (typing) => {
+      if (!conversationId || lastTypingStateRef.current === typing) return;
+      lastTypingStateRef.current = typing;
+      WebSocketAPI.sendTyping(conversationId, typing);
+    },
+    [conversationId],
+  );
+
   // Tải danh sách tin nhắn khi đổi hội thoại (Trang 0)
   useEffect(() => {
     let mounted = true;
@@ -106,6 +147,7 @@ export default function ChatWindow({
       setLoadingMessages(true);
       setErrorMessage("");
       setMessages([]);
+      setRemotePinnedMessages([]);
       setPage(0);
       setHasMore(true);
       lastMessageIdRef.current = null;
@@ -128,7 +170,11 @@ export default function ChatWindow({
         if (mapped.length > 0) {
           lastMessageIdRef.current = mapped[mapped.length - 1].id;
         }
-        MessageAPI.markConversationRead(conversationId);
+        WebSocketAPI.sendReadReceipt(conversationId).then((readResult) => {
+          if (!readResult?.isSuccess) {
+            MessageAPI.markConversationRead(conversationId);
+          }
+        });
       } else {
         setErrorMessage(result.message || "Không lấy được tin nhắn");
       }
@@ -199,6 +245,7 @@ export default function ChatWindow({
   // Kết nối WebSocket để nhận tin nhắn realtime
   useEffect(() => {
     let subscription = null;
+    let readSubscription = null;
     let mounted = true;
 
     const initSocket = async () => {
@@ -212,33 +259,25 @@ export default function ChatWindow({
           (newMessage) => {
             if (!mounted) return;
 
-            setMessages((prev) => {
-              let mapped = mapMessageToUI(newMessage, currentUserId);
+            const senderId = newMessage?.sender_id || newMessage?.senderId;
+            if (senderId && String(senderId) !== String(currentUserId)) {
+              scheduleMarkConversationRead();
+            }
 
-              const pendingReply = pendingReplyRef.current;
-              const mappedContent = mapped.text || mapped.content || "";
-              const pendingContent = pendingReply?.content || "";
+            const mapped = mapMessageToUI(newMessage, currentUserId);
+            setRemotePinnedMessages((previousPinned) => {
+              const withoutCurrent = previousPinned.filter(
+                (message) => String(message.id) !== String(mapped.id),
+              );
 
-              const isPendingReplyMessage =
-                pendingReply &&
-                mapped.isOwn &&
-                mappedContent.trim() === pendingContent.trim();
-
-              if (isPendingReplyMessage) {
-                const repliedMessage = pendingReply.message;
-
-                mapped = {
-                  ...mapped,
-                  isReply: true,
-                  replyText:
-                    repliedMessage?.text ||
-                    repliedMessage?.content ||
-                    "Tin nhắn",
-                  replySenderName: repliedMessage?.senderName || "Người dùng",
-                };
-
-                pendingReplyRef.current = null;
+              if (!mapped.isPinned) {
+                return withoutCurrent;
               }
+
+              return sortMessagesByCreatedAt([...withoutCurrent, mapped]);
+            });
+
+            setMessages((prev) => {
               const existed = prev.some(
                 (m) => String(m.id) === String(mapped.id),
               );
@@ -260,6 +299,46 @@ export default function ChatWindow({
           },
         );
 
+        readSubscription = await WebSocketAPI.subscribeConversationRead(
+          conversationId,
+          (readEvent) => {
+            if (!mounted || readEvent?.event_type !== "MESSAGES_READ") return;
+
+            const reader = readEvent.reader;
+            const readerId = reader?.user_id || reader?.userId;
+            const readMessageIds = new Set(
+              (readEvent.message_ids || readEvent.messageIds || []).map(String),
+            );
+
+            if (!readerId || String(readerId) === String(currentUserId) || readMessageIds.size === 0) {
+              return;
+            }
+
+            setMessages((previousMessages) =>
+              previousMessages.map((message) => {
+                if (!readMessageIds.has(String(message.id))) return message;
+
+                const currentSeenBy = Array.isArray(message.seenBy) ? message.seenBy : [];
+                const alreadySeen = currentSeenBy.some((seenUser) => {
+                  const seenUserId = seenUser?.user_id || seenUser?.userId;
+                  return String(seenUserId) === String(readerId);
+                });
+
+                if (alreadySeen) return message;
+
+                return {
+                  ...message,
+                  seenBy: [...currentSeenBy, reader],
+                  raw: {
+                    ...message.raw,
+                    seen_by: [...(message.raw?.seen_by || message.raw?.seenBy || []), reader],
+                  },
+                };
+              }),
+            );
+          },
+        );
+
         if (mounted) setSocketStatus("Đã kết nối");
       } catch (error) {
         console.error("CONNECT SOCKET ERROR:", error);
@@ -270,7 +349,38 @@ export default function ChatWindow({
     initSocket();
     return () => {
       mounted = false;
+      window.clearTimeout(autoReadTimerRef.current);
+      window.clearTimeout(typingTimerRef.current);
+      publishTypingState(false);
       subscription?.unsubscribe();
+      readSubscription?.unsubscribe();
+    };
+  }, [conversationId, currentUserId, publishTypingState, scheduleMarkConversationRead]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchPinnedMessages = async () => {
+      if (!conversationId) return;
+
+      const result = await MessageAPI.getPinnedMessages(conversationId);
+      if (!mounted) return;
+
+      if (result.isSuccess) {
+        setRemotePinnedMessages(
+          sortMessagesByCreatedAt(
+            result.data.map((msg) => mapMessageToUI(msg, currentUserId)),
+          ),
+        );
+      } else {
+        setRemotePinnedMessages([]);
+      }
+    };
+
+    fetchPinnedMessages();
+
+    return () => {
+      mounted = false;
     };
   }, [conversationId, currentUserId]);
 
@@ -295,23 +405,27 @@ export default function ChatWindow({
   }, [messages, loadingMessages]);
 
   const handleSendMessage = async (content, parentId) => {
-    pendingReplyRef.current = parentId
-      ? {
-          content,
-          message: replyingMessage,
-        }
-      : null;
+    publishTypingState(false);
+    window.clearTimeout(typingTimerRef.current);
     const result = await WebSocketAPI.sendTextMessage(
       conversationId,
       content,
       parentId,
     );
     if (!result.isSuccess) {
-      pendingReplyRef.current = null;
       setSocketStatus("Mất kết nối");
     }
 
     return result;
+  };
+
+  const handleTypingChange = (typing) => {
+    publishTypingState(typing);
+    window.clearTimeout(typingTimerRef.current);
+
+    if (typing) {
+      typingTimerRef.current = window.setTimeout(() => publishTypingState(false), 2500);
+    }
   };
 
   const handleSendFileMessage = async (file, type) => {
@@ -330,9 +444,9 @@ export default function ChatWindow({
 
       const nextPinnedStatus = !currentMessage.isPinned;
 
-      // Giới hạn ghim tối đa 3 tin nhắn
-      if (nextPinnedStatus && pinnedMessages.length >= 3) {
-        alert("Bạn chỉ được ghim tối đa 3 tin nhắn.");
+      // Backend đang giới hạn tối đa 5 tin nhắn ghim mỗi hội thoại.
+      if (nextPinnedStatus && pinnedMessages.length >= 5) {
+        alert("Bạn chỉ được ghim tối đa 5 tin nhắn.");
         return;
       }
 
@@ -366,6 +480,18 @@ export default function ChatWindow({
             ),
           ),
         );
+
+        setRemotePinnedMessages((prev) => {
+          const withoutCurrent = prev.filter(
+            (item) => String(item.id) !== String(updatedMessage.id),
+          );
+
+          if (!updatedMessage.isPinned) {
+            return withoutCurrent;
+          }
+
+          return sortMessagesByCreatedAt([...withoutCurrent, updatedMessage]);
+        });
       }
     } catch (error) {
       console.error("PIN MESSAGE ERROR:", error);
@@ -408,6 +534,14 @@ export default function ChatWindow({
             ),
           ),
         );
+
+        setRemotePinnedMessages((prev) =>
+          prev.map((item) =>
+            String(item.id) === String(updatedMessage.id)
+              ? { ...item, ...updatedMessage }
+              : item,
+          ),
+        );
       }
     } catch (error) {
       console.error("RECALL MESSAGE ERROR:", error);
@@ -416,18 +550,8 @@ export default function ChatWindow({
 
   const handleDeleteForMe = async (messageId) => {
     try {
-      setMessages((prev) =>
-        prev.map((item) =>
-          String(item.id) === String(messageId)
-            ? {
-                ...item,
-                text: "",
-                content: "",
-                isDeletedForMe: true,
-              }
-            : item,
-        ),
-      );
+      setMessages((prev) => prev.filter((item) => String(item.id) !== String(messageId)));
+      setRemotePinnedMessages((prev) => prev.filter((item) => String(item.id) !== String(messageId)));
 
       await MessageAPI.deleteMessageForMe(messageId);
     } catch (error) {
@@ -472,7 +596,7 @@ export default function ChatWindow({
             type="button"
             onClick={() => setIsInfoOpen(!isInfoOpen)}
             className={`p-2 rounded-lg transition-all ${
-              isInfoOpen ? "bg-blue-50" : "hover:bg-gray-100"
+              isInfoOpen ? "chat-info-button-active" : "hover:bg-gray-100"
             }`}
           >
             <FaInfoCircle className="h-6 w-6 text-slate-700" />
@@ -533,6 +657,7 @@ export default function ChatWindow({
             currentEmoji={currentEmoji}
             onSendMessage={handleSendMessage}
             onSendFileMessage={handleSendFileMessage}
+            onTypingChange={handleTypingChange}
             replyingMsg={replyingMessage} 
             onCancelReply={() => setReplyingMessage(null)} 
           />

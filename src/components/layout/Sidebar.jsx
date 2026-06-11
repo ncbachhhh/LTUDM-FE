@@ -40,7 +40,7 @@ function ActiveCurve() {
         className="pointer-events-none absolute -top-[25px] right-0 h-[25px] w-[25px]"
         style={{
           background:
-            "radial-gradient(circle at top left, transparent 24.5px, #E8EEFB 25px)",
+            "radial-gradient(circle at top left, transparent 24.5px, var(--side-active-bg, #E8EEFB) 25px)",
         }}
       />
 
@@ -48,7 +48,7 @@ function ActiveCurve() {
         className="pointer-events-none absolute -bottom-[25px] right-0 h-[25px] w-[25px]"
         style={{
           background:
-            "radial-gradient(circle at bottom left, transparent 24.5px, #E8EEFB 25px)",
+            "radial-gradient(circle at bottom left, transparent 24.5px, var(--side-active-bg, #E8EEFB) 25px)",
         }}
       />
     </>
@@ -60,8 +60,9 @@ function ActiveIndicator({ index }) {
 
   return (
     <div
-      className="absolute right-0 top-0 h-16 w-[calc(100%-12px)] rounded-l-[29px] bg-[#E8EEFB] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+      className="absolute right-0 top-0 h-16 w-[calc(100%-12px)] rounded-l-[29px] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
       style={{
+        background: "var(--side-active-bg, #E8EEFB)",
         transform: `translateY(${index * (NAV_ITEM_HEIGHT + NAV_ITEM_GAP)}px)`,
       }}
     >
@@ -155,7 +156,10 @@ export default function SideNav() {
           <div className="relative flex h-8 w-full items-center justify-center">
             {/* Vùng thụt lề nền trượt mượt mà cho Cài đặt ăn khớp sang mép phải */}
             {isSettingsActive && (
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 h-16 w-[calc(100%-12px)] rounded-l-[29px] bg-[#E8EEFB] z-0 animate-in fade-in duration-200">
+              <div
+                className="absolute right-0 top-1/2 -translate-y-1/2 h-16 w-[calc(100%-12px)] rounded-l-[29px] z-0 animate-in fade-in duration-200"
+                style={{ background: "var(--side-active-bg, #E8EEFB)" }}
+              >
                 <ActiveCurve />
               </div>
             )}

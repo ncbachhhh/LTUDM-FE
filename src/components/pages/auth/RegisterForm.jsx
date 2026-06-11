@@ -11,6 +11,15 @@ import {
   DatePicker,
 } from "antd";
 import { FaArrowLeft } from "react-icons/fa";
+import {
+  getFirstValidationError,
+  trimValue,
+  validateBirthDate,
+  validateDisplayName,
+  validateEmail,
+  validateGender,
+  validatePassword,
+} from "../../../utils/form-validation.util.js";
 
 const { Title } = Typography;
 
@@ -42,45 +51,30 @@ const RegisterForm = ({ setView }) => {
       event.preventDefault();
     }
 
-    if (
-      !formData.email ||
-      !formData.gender ||
-      !formData.birth_date ||
-      !formData.password ||
-      !formData.display_name
-    ) {
-      api.warning({
-        message: "Thiếu thông tin",
-        description: "Vui lòng nhập đầy đủ thông tin đăng ký",
-        placement: "topRight",
-      });
-      return;
-    }
+    const validationError = getFirstValidationError([
+      () => validateDisplayName(formData.display_name),
+      () => validateGender(formData.gender),
+      () => validateBirthDate(formData.birth_date),
+      () => validateEmail(formData.email),
+      () => validatePassword(formData.password),
+      () => (!formData.terms ? "Bạn cần đồng ý với điều khoản dịch vụ." : ""),
+    ]);
 
-    if (formData.password.length < 8) {
+    if (validationError) {
       api.warning({
-        message: "Mật khẩu không hợp lệ",
-        description: "Mật khẩu phải có ít nhất 8 ký tự",
-        placement: "topRight",
-      });
-      return;
-    }
-
-    if (!formData.terms) {
-      api.warning({
-        message: "Chưa đồng ý điều khoản",
-        description: "Bạn cần đồng ý với điều khoản dịch vụ",
+        message: "Thông tin không hợp lệ",
+        description: validationError,
         placement: "topRight",
       });
       return;
     }
 
     const data = {
-      email: formData.email,
+      email: trimValue(formData.email),
       gender: formData.gender,
       birth_date: formData.birth_date,
       password: formData.password,
-      display_name: formData.display_name,
+      display_name: trimValue(formData.display_name),
     };
 
     setLoading(true);
@@ -137,6 +131,7 @@ const RegisterForm = ({ setView }) => {
             name="display_name"
             value={formData.display_name}
             onChange={handleChange}
+            maxLength={100}
             placeholder="Nhập tên hiển thị"
             size="large"
             className="w-full !p-3 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"
@@ -198,6 +193,7 @@ const RegisterForm = ({ setView }) => {
             value={formData.email}
             onChange={handleChange}
             type="email"
+            maxLength={255}
             placeholder="Nhập email"
             size="large"
             className="w-full !p-3 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"
@@ -212,7 +208,9 @@ const RegisterForm = ({ setView }) => {
             name="password"
             value={formData.password}
             onChange={handleChange}
-            placeholder="Tạo mật khẩu ít nhất 8 ký tự"
+            minLength={8}
+            maxLength={72}
+            placeholder="Ít nhất 8 ký tự, gồm hoa/thường/số/ký tự đặc biệt"
             size="large"
             className="w-full !p-3 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"
           />

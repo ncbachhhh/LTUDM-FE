@@ -175,7 +175,7 @@ const ContactsPage = () => {
                   onClick={() => setActiveTab(tab.key)}
                   className={`w-full flex items-center gap-4 px-5 py-4 cursor-pointer transition-all duration-200 rounded-2xl border-none outline-none
                     ${isActive ? "text-[#0033FF] font-bold" : "text-black bg-transparent hover:bg-[#EEF2F9]"}`}
-                  style={isActive ? { background: "linear-gradient(0deg, rgba(242, 230, 238, 0.3) 0%, rgba(151, 125, 255, 0.3) 100%)" } : {}}
+                  style={isActive ? { background: "var(--app-active-bg)" } : {}}
                 >
                   <span className={`flex items-center shrink-0 transition-colors ${isActive ? "text-[#0033FF]" : "text-gray-500"}`}>
                     {tab.icon}

@@ -9,13 +9,48 @@ const getAvatarUrl = (user) => user?.avatar_url || user?.avatarUrl || user?.avat
 
 const getCoverUrl = (user) => user?.background_url || user?.backgroundUrl || user?.bg_url || user?.bgUrl || user?.cover_url || user?.coverUrl || user?.background || PROFILE_COVER;
 
+const normalizeCode = (value) => String(value || "NONE").trim().toUpperCase();
+
 const getFriendshipStatus = (user) =>
-  user?.friendship_status || user?.friendshipStatus || "NONE";
+  normalizeCode(user?.friendship_status || user?.friendshipStatus);
 
 const getFriendshipDirection = (user) =>
-  user?.friendship_direction || user?.friendshipDirection || "NONE";
+  normalizeCode(user?.friendship_direction || user?.friendshipDirection);
 
 const getRequestUserId = (request) => request?.user?.id || request?.userId;
+
+const formatDateDisplay = (value) => {
+  if (!value) return "-";
+  const dateText = String(value);
+  const [datePart] = dateText.split("T");
+  const parts = datePart.split("-");
+  if (parts.length !== 3) return datePart;
+  const [year, month, day] = parts;
+  if (!year || !month || !day) return datePart;
+  return `${day}/${month}/${year}`;
+};
+
+const formatGender = (value) => {
+  const gender = normalizeCode(value);
+  if (gender === "MALE") return "Nam";
+  if (gender === "FEMALE") return "Nữ";
+  if (gender === "OTHER") return "Khác";
+  return value || "-";
+};
+
+const getFriendshipStatusLabel = (status, direction) => {
+  const normalizedStatus = normalizeCode(status);
+  const normalizedDirection = normalizeCode(direction);
+
+  if (normalizedStatus === "ACCEPTED") return "Bạn bè";
+  if (normalizedStatus === "PENDING" && normalizedDirection === "OUTGOING") return "Đã gửi lời mời";
+  if (normalizedStatus === "PENDING" && normalizedDirection === "INCOMING") return "Đang chờ bạn phản hồi";
+  if (normalizedStatus === "PENDING") return "Đang chờ kết bạn";
+  if (normalizedStatus === "BLOCKED") return "Đã chặn";
+  if (normalizedStatus === "DECLINED") return "Đã từ chối";
+  if (normalizedStatus === "NONE") return "Chưa là bạn bè";
+  return status || "-";
+};
 
 export default function UserProfileModule({
   onClose,
@@ -33,6 +68,16 @@ export default function UserProfileModule({
   const isModalMode = true;
 
   if (!user) return null;
+
+  const friendshipStatusLabel = getFriendshipStatusLabel(friendshipStatus, friendshipDirection);
+  const profileDetails = [
+    { label: "Giới tính:", value: formatGender(user.gender) },
+    { label: "Ngày sinh:", value: formatDateDisplay(user.dob || user.birth_date || user.birthDate) },
+    { label: "Điện thoại:", value: user.phone || "-" },
+    { label: "Biệt danh:", value: user.nickname || "-" },
+    { label: "Mô tả:", value: user.bio || "-" },
+    { label: "Trạng thái bạn bè:", value: friendshipStatusLabel },
+  ];
 
   const resolveOutgoingRequestId = async () => {
     if (friendshipId) return friendshipId;
@@ -298,7 +343,9 @@ export default function UserProfileModule({
                 <h1 className={isModalMode ? "text-[20px] font-black text-black leading-tight truncate" : "text-[26px] font-black text-black leading-tight truncate"}>
                   {getDisplayName(user)}
                 </h1>
-                <p className={isModalMode ? "text-[14px] font-bold text-gray-400 truncate" : "text-[16px] font-bold text-gray-400 truncate"}>{user.email}</p>
+                <p className={isModalMode ? "text-[14px] font-bold text-gray-400 truncate" : "text-[16px] font-bold text-gray-400 truncate"}>
+                  {friendshipStatusLabel}
+                </p>
               </div>
             </div>
 
@@ -328,19 +375,21 @@ export default function UserProfileModule({
           <div className="h-[10px] w-full bg-[#F8F9FC]"></div>
 
           <div className={isModalMode ? "px-6 py-6" : "px-14 py-10"}>
-            <h3 className={isModalMode ? "mb-6 text-[18px] font-bold text-black text-left" : "mb-8 text-[24px] font-bold text-black text-left"}>Thông tin tài khoản</h3>
-            <div className={isModalMode ? "flex flex-col gap-4 pb-8" : "flex flex-col gap-6 pb-20"}>
-              {[
-                { label: "Email:", value: user.email },
-                { label: "Tên đăng nhập:", value: user.username },
-                { label: "Trạng thái:", value: friendshipStatus },
-              ].map((item) => (
-                <div key={item.label} className="flex justify-between items-center border-b border-gray-50 pb-4 gap-6">
-                  <span className={isModalMode ? "text-[15px] font-semibold text-slate-400 italic" : "text-[19px] font-semibold text-slate-400 italic"}>{item.label}</span>
-                  <span className={isModalMode ? "text-[15px] font-bold text-black truncate" : "text-[19px] font-bold text-black truncate"}>{item.value || "-"}</span>
-                </div>
-              ))}
-            </div>
+            <h3 className={isModalMode ? "mb-3 text-[18px] font-bold text-black text-left" : "mb-5 text-[24px] font-bold text-black text-left"}>Thông tin chi tiết</h3>
+            <table className={isModalMode ? "w-full border-collapse text-[15px]" : "w-full border-collapse text-[18px]"}>
+              <tbody>
+                {profileDetails.map((item) => (
+                  <tr key={item.label} className="align-top">
+                    <td className={isModalMode ? "w-[120px] py-2 text-slate-400 font-semibold" : "w-[160px] py-3 text-slate-400 font-semibold"}>
+                      {item.label}
+                    </td>
+                    <td className={isModalMode ? "py-2 text-slate-700 font-bold break-words" : "py-3 text-slate-700 font-bold break-words"}>
+                      {item.value || "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

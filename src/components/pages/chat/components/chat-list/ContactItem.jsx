@@ -1,6 +1,5 @@
 import React from "react";
 import ChatActionMenu from "./ChatActionMenu";
-import { LuPin } from "react-icons/lu";
 // formatRelativeTime removed
 
 export default function ContactItem({
@@ -13,7 +12,7 @@ export default function ContactItem({
   isOnline = false,
   isUnread,
   unreadCount = 0,
-  isPinned,
+  canBlock = false,
   onAction,
   onClick,
 }) {
@@ -25,8 +24,7 @@ export default function ContactItem({
       style={
         isActive
           ? {
-              background:
-                "#e5f1ff",
+              background: "var(--app-active-bg, #e5f1ff)",
             }
           : {}
       }
@@ -58,16 +56,9 @@ export default function ContactItem({
         </p>
       </div>
 
-      {isPinned && (
-        <div className="absolute bottom-2 right-2 transform rotate-[30deg]">
-          {/* Đổ màu #0033FF và làm đậm viền */}
-          <LuPin size={14} fill="#0033FF" color="#0033FF" strokeWidth={3} />
-        </div>
-      )}
-
       <div className="absolute right-8 z-10">
         <ChatActionMenu
-          isPinned={isPinned}
+          canBlock={canBlock}
           onAction={(type) => onAction(type, id)}
         />
       </div>

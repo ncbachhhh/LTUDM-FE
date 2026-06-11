@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import ChatMenuItem from './ChatMenuItem';
-import { LuPin, LuUserRoundX, LuEyeOff, LuBookmark, LuTrash2 } from "react-icons/lu";
+import { LuUserRoundX, LuTrash2 } from "react-icons/lu";
 
-export default function ChatActionMenu({ isPinned, onAction }) {
+export default function ChatActionMenu({ canBlock = false, onAction }) {
   const [showMenu, setShowMenu] = useState(false);
   // Hỗ trợ cả tọa độ top (xổ xuống) và bottom (bật lên trên)
   const [coords, setCoords] = useState({ top: null, bottom: null, left: 0 });
@@ -61,10 +61,7 @@ export default function ChatActionMenu({ isPinned, onAction }) {
   };
 
   const menuOptions = [
-    { id: 'PIN', label: isPinned ? 'Bỏ ghim' : 'Ghim tin nhắn lên đầu', icon: <LuPin size={18} /> },
-    { id: 'BLOCK', label: 'Chặn', icon: <LuUserRoundX size={18} /> },
-    { id: 'HIDE', label: 'Ẩn đoạn chat', icon: <LuEyeOff size={18} /> },
-    { id: 'MARK_UNREAD', label: 'Đánh dấu là chưa đọc', icon: <LuBookmark size={18} /> },
+    ...(canBlock ? [{ id: 'BLOCK', label: 'Chặn', icon: <LuUserRoundX size={18} /> }] : []),
     { id: 'DELETE', label: 'Xóa đoạn chat', color: 'text-red-500', icon: <LuTrash2 size={18} /> },
   ];
 

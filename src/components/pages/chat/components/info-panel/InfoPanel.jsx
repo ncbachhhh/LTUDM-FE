@@ -8,11 +8,13 @@ import FileManager from "./modals/FileManager.jsx";
 import EditNicknameModal from "./modals/EditNickname.jsx";
 import ChangeEmojiModal from "./modals/ChangeEmoji.jsx";
 import ConversationAPI from "../../../../../apis/conversation.api.jsx";
+import MessageAPI from "../../../../../apis/message.api.jsx";
 import { DEFAULT_AVATAR } from "../../../../../constants/asset.constants.js";
 import { Image, ChevronRight, ArrowRight, UserPlus, Users, Search, Bell, BellOff } from 'lucide-react';
-import { useSound } from "../../../../../contexts/sound.jsx";
 import CreateGroupModule from "../chat-list/CreateGroupModule.jsx";
 import AddMemberModule from "./AddMemberModule.jsx";
+import { getAvatarUrl, getDisplayName, getMemberId } from "../../../../../utils/identity.util.js";
+import { useNotification } from "../../../../../contexts/notification.context.jsx";
 
 const { Title, Text } = Typography;
 
@@ -22,7 +24,15 @@ const normalizeSetting = (value = "") =>
 const isNicknameSetting = (setting) => normalizeSetting(setting).includes("biet danh");
 const isEmojiSetting = (setting) => normalizeSetting(setting).includes("cam xuc");
 
-export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, contacts, onCreateGroup }) {
+export default function InfoPanel({
+  data,
+  currentUserId,
+  onEmojiChange,
+  onConversationUpdated,
+  onConversationRemoved,
+  contacts,
+  onCreateGroup,
+}) {
   const [conversationInfo, setConversationInfo] = useState(null);
   const [loadingInfo, setLoadingInfo] = useState(false);
   const [isMuteModalOpen, setIsMuteModalOpen] = useState(false);
@@ -31,19 +41,19 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
   const [currentView, setCurrentView] = useState("default");
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [imagePreviewMessages, setImagePreviewMessages] = useState([]);
+  const [nowMs, setNowMs] = useState(0);
   
   // State điều khiển menu 3 chấm
   const [activeMemberMenu, setActiveMemberMenu] = useState(null);
   // State đóng/mở danh sách thành viên inline
   const [isMembersExpanded, setIsMembersExpanded] = useState(false);
   
-  const { isGlobalMuted, muteSound, unmuteSound } = useSound();
+  const { api } = useNotification();
 
   const conversationId = data?.conversation_id || data?.conversationId || data?.id;
   
-  // --- CHÚ Ý --- 
-  // Bạn cần lấy ID của user đang đăng nhập hiện tại gán vào biến này để logic phân quyền chạy đúng
-  const currentUserId = data?.currentUserId || data?.current_user_id || "ID_CUA_BAN_O_DAY"; 
+  const resolvedCurrentUserId = currentUserId || data?.currentUserId || data?.current_user_id;
 
   const loadConversationInfo = useCallback(async () => {
     if (!conversationId) return;
@@ -60,10 +70,190 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
     loadConversationInfo();
   };
 
+  const handleAddMembers = async (newMemberIds) => {
+    if (!conversationId || !newMemberIds?.length) {
+      return { isSuccess: false };
+    }
+
+    const result = await ConversationAPI.addMembers(conversationId, newMemberIds);
+    if (!result.isSuccess) {
+      api.error({
+        message: "Thêm thành viên thất bại",
+        description: result.message,
+        placement: "topRight",
+      });
+      return result;
+    }
+
+    if (result.data) onConversationUpdated?.(result.data);
+    await loadConversationInfo();
+    api.success({
+      message: "Đã thêm thành viên",
+      description: "Danh sách thành viên nhóm đã được cập nhật.",
+      placement: "topRight",
+    });
+
+    return result;
+  };
+
+  const applyGroupUpdate = async (result, successMessage) => {
+    if (!result.isSuccess) {
+      api.error({
+        message: "Thao tác thất bại",
+        description: result.message,
+        placement: "topRight",
+      });
+      return result;
+    }
+
+    if (result.data) onConversationUpdated?.(result.data);
+    await loadConversationInfo();
+    api.success({
+      message: successMessage,
+      placement: "topRight",
+    });
+
+    return result;
+  };
+
+  const handleRemoveMember = (memberId, memberName) => {
+    Modal.confirm({
+      title: "Xóa thành viên khỏi nhóm?",
+      content: `Bạn có chắc muốn xóa ${memberName || "thành viên này"} khỏi nhóm?`,
+      okText: "Xóa",
+      okButtonProps: { danger: true },
+      cancelText: "Hủy",
+      centered: true,
+      onOk: async () => {
+        setActiveMemberMenu(null);
+        const result = await ConversationAPI.removeMember(conversationId, memberId);
+        await applyGroupUpdate(result, "Đã xóa thành viên khỏi nhóm");
+      },
+    });
+  };
+
+  const handleTransferOwner = (memberId, memberName) => {
+    Modal.confirm({
+      title: "Chuyển trưởng nhóm?",
+      content: `${memberName || "Thành viên này"} sẽ trở thành trưởng nhóm mới. Bạn sẽ không còn quyền quản lý nhóm.`,
+      okText: "Chuyển",
+      cancelText: "Hủy",
+      centered: true,
+      onOk: async () => {
+        setActiveMemberMenu(null);
+        const result = await ConversationAPI.transferOwner(conversationId, memberId);
+        await applyGroupUpdate(result, "Đã chuyển trưởng nhóm");
+      },
+    });
+  };
+
+  const handleLeaveGroup = () => {
+    Modal.confirm({
+      title: "Rời nhóm?",
+      content: amIGroupOwner
+        ? "Bạn đang là trưởng nhóm. Khi rời nhóm, hệ thống sẽ tự chuyển trưởng nhóm cho một thành viên khác."
+        : "Bạn sẽ không còn thấy nhóm này trong danh sách chat.",
+      okText: "Rời nhóm",
+      okButtonProps: { danger: true },
+      cancelText: "Hủy",
+      centered: true,
+      onOk: async () => {
+        const result = await ConversationAPI.leaveGroup(conversationId);
+        if (!result.isSuccess) {
+          api.error({
+            message: "Rời nhóm thất bại",
+            description: result.message,
+            placement: "topRight",
+          });
+          return;
+        }
+        onConversationRemoved?.(conversationId);
+        api.success({
+          message: "Đã rời nhóm",
+          placement: "topRight",
+        });
+      },
+    });
+  };
+
+  const handleDeleteGroup = () => {
+    Modal.confirm({
+      title: "Giải tán nhóm?",
+      content: "Toàn bộ nhóm và dữ liệu hội thoại nhóm sẽ bị xóa. Thao tác này không thể hoàn tác.",
+      okText: "Giải tán",
+      okButtonProps: { danger: true },
+      cancelText: "Hủy",
+      centered: true,
+      onOk: async () => {
+        const result = await ConversationAPI.deleteConversation(conversationId);
+        if (!result.isSuccess) {
+          api.error({
+            message: "Giải tán nhóm thất bại",
+            description: result.message,
+            placement: "topRight",
+          });
+          return;
+        }
+        onConversationRemoved?.(conversationId);
+        api.success({
+          message: "Đã giải tán nhóm",
+          placement: "topRight",
+        });
+      },
+    });
+  };
+
   useEffect(() => {
     const timerId = window.setTimeout(loadConversationInfo, 0);
     return () => window.clearTimeout(timerId);
   }, [loadConversationInfo]);
+
+  useEffect(() => {
+    if (!conversationId) return undefined;
+
+    const handleConversationChanged = (event) => {
+      const changedConversationId =
+        event.detail?.conversation_id ||
+        event.detail?.conversationId ||
+        event.detail?.conversation?.id ||
+        event.detail?.id;
+
+      if (String(changedConversationId) === String(conversationId)) {
+        loadConversationInfo();
+      }
+    };
+
+    window.addEventListener("conversation:changed", handleConversationChanged);
+    return () => window.removeEventListener("conversation:changed", handleConversationChanged);
+  }, [conversationId, loadConversationInfo]);
+
+  useEffect(() => {
+    if (!conversationId) return undefined;
+
+    let cancelled = false;
+    const timerId = window.setTimeout(async () => {
+      const result = await MessageAPI.getConversationImagePreview(conversationId, 3);
+      if (!cancelled && result.isSuccess) {
+        setImagePreviewMessages(result.data || []);
+      }
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+    };
+  }, [conversationId]);
+
+  useEffect(() => {
+    const updateNow = () => setNowMs(Date.now());
+    const timerId = window.setTimeout(updateNow, 0);
+    const intervalId = window.setInterval(updateNow, 60000);
+
+    return () => {
+      window.clearTimeout(timerId);
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const info = conversationInfo || data || {};
   const displayName = info.display_name || info.displayName || info.title || info.name || "Hội thoại";
@@ -73,22 +263,115 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
   const members = info.members || data?.members || [];
   
   const isGroup = info.type === "GROUP";
+  const ownerMember = members.find((member) => member.role === "OWNER");
+  const ownerId = getMemberId(ownerMember) || info.createdBy || info.created_by || data?.createdBy || data?.created_by;
+  const amIGroupOwner = Boolean(ownerId && String(ownerId) === String(resolvedCurrentUserId));
 
-  const handleNotificationClick = () => {
-    if (isGlobalMuted) {
-      unmuteSound(); 
-    } 
-    else {
-      setIsMuteModalOpen(true); 
+  const resolveDirectChatMember = () => {
+    if (isGroup) return null;
+
+    const explicitUserId =
+      data?.userId ||
+      data?.user_id ||
+      info?.targetUserId ||
+      info?.target_user_id ||
+      info?.userId ||
+      info?.user_id;
+
+    if (
+      explicitUserId &&
+      String(explicitUserId) !== String(conversationId) &&
+      String(explicitUserId) !== String(resolvedCurrentUserId)
+    ) {
+      return {
+        id: explicitUserId,
+        userId: explicitUserId,
+        user_id: explicitUserId,
+        name: displayName,
+        avatar: avatarUrl,
+      };
     }
+
+    const memberSources = [...(info.members || []), ...(data?.members || [])];
+    const otherMember = memberSources.find((member) => {
+      const memberId = getMemberId(member);
+      return memberId && String(memberId) !== String(resolvedCurrentUserId);
+    });
+    const otherMemberId = getMemberId(otherMember);
+
+    if (!otherMemberId) return null;
+
+    return {
+      ...otherMember,
+      id: otherMemberId,
+      userId: otherMemberId,
+      user_id: otherMemberId,
+      name: getDisplayName(otherMember, displayName),
+      avatar: getAvatarUrl(otherMember, avatarUrl),
+    };
+  };
+
+  const directChatMember = resolveDirectChatMember();
+
+  const mutedUntil = info.muted_until || info.mutedUntil || data?.mutedUntil || data?.muted_until;
+  const isConversationMuted = mutedUntil ? new Date(mutedUntil).getTime() > nowMs : false;
+
+  const handleNotificationClick = async () => {
+    if (isConversationMuted) {
+      const result = await ConversationAPI.unmuteConversation(conversationId);
+      if (!result.isSuccess) {
+        api.error({ message: "Bật thông báo thất bại", description: result.message, placement: "topRight" });
+        return;
+      }
+      onConversationUpdated?.(result.data);
+      await loadConversationInfo();
+      api.success({ message: "Đã bật thông báo hội thoại", placement: "topRight" });
+      return;
+    }
+
+    setIsMuteModalOpen(true);
+  };
+
+  const handleMuteConversation = async (optionId) => {
+    const mutedUntilValue = resolveMutedUntil(optionId);
+    const result = await ConversationAPI.muteConversation(conversationId, mutedUntilValue);
+    if (!result.isSuccess) {
+      api.error({ message: "Tắt thông báo thất bại", description: result.message, placement: "topRight" });
+      return;
+    }
+
+    onConversationUpdated?.(result.data);
+    await loadConversationInfo();
+    api.success({ message: "Đã tắt thông báo hội thoại", placement: "topRight" });
+  };
+
+  const handleJumpToMessage = (messageId) => {
+    window.dispatchEvent(
+      new CustomEvent("conversation:jump-to-message", {
+        detail: { conversationId, messageId },
+      }),
+    );
+    setCurrentView("default");
   };
 
   if (currentView === "search") {
-    return <SearchChat onClose={() => setCurrentView("default")} />;
+    return (
+      <SearchChat
+        conversationId={conversationId}
+        onClose={() => setCurrentView("default")}
+        onJumpToMessage={handleJumpToMessage}
+      />
+    );
   }
 
   if (currentView === "file-manager") {
-    return <FileManager onClose={() => setCurrentView("default")} />;
+    return (
+      <FileManager
+        onClose={() => setCurrentView("default")}
+        conversationId={conversationId}
+        members={members}
+      />
+    );
   }
 
   return (
@@ -123,6 +406,13 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
                 if (isGroup) {
                     setIsAddMemberModalOpen(true);
                 } else {
+                    if (!directChatMember?.userId) {
+                      Modal.error({
+                        title: "Không thể lập nhóm",
+                        content: "Không xác định được user id của người đang chat.",
+                      });
+                      return;
+                    }
                     setIsCreateGroupModalOpen(true); 
                 }
               }}
@@ -130,12 +420,12 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
               {isGroup ? <UserPlus className="h-[18px] w-[18px] text-gray-700" /> : <Users className="h-[18px] w-[18px] text-gray-700" />}
             </ActionBtn>
 
-            <Tooltip title={isGlobalMuted ? "Bật thông báo" : "Tắt thông báo"} placement="bottom">
+            <Tooltip title={isConversationMuted ? "Bật thông báo" : "Tắt thông báo"} placement="bottom">
               <ActionBtn
                 label="Thông báo"
                 onClick={handleNotificationClick}
               >
-                {isGlobalMuted ? <BellOff className="h-[18px] w-[18px] text-gray-700" /> : <Bell className="h-[18px] w-[18px] text-gray-700" />}
+                {isConversationMuted ? <BellOff className="h-[18px] w-[18px] text-gray-700" /> : <Bell className="h-[18px] w-[18px] text-gray-700" />}
               </ActionBtn>
             </Tooltip>
 
@@ -161,14 +451,23 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
           </div>
 
           <div className="flex items-center gap-2 overflow-hidden">
-            {[1, 2, 3].map((item) => (
-              <img 
-                key={item}
-                src={`https://picsum.photos/seed/${item}/100/100`} 
-                alt="Ảnh preview" 
-                className="w-[70px] h-[70px] rounded-xl object-cover border border-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
-              />
-            ))}
+            {imagePreviewMessages.length > 0 ? (
+              imagePreviewMessages.map((message) => {
+                const url = message.attachment?.file_url || message.attachment?.fileUrl || message.content;
+                return (
+                  <img
+                    key={message.id}
+                    src={url}
+                    alt="Ảnh preview"
+                    className="w-[70px] h-[70px] rounded-xl object-cover border border-gray-100 cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                );
+              })
+            ) : (
+              <div className="flex h-[70px] flex-1 items-center rounded-xl bg-gray-50 px-3 text-xs font-semibold text-gray-400">
+                Chưa có ảnh nào
+              </div>
+            )}
             <button 
               onClick={() => setCurrentView("file-manager")}
               className="w-[70px] h-[70px] rounded-xl bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0"
@@ -212,39 +511,32 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
                 <ChevronRight className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isMembersExpanded ? 'rotate-90' : ''}`} />
               </button>
 
-              {/* Danh sách sổ ra - ĐÃ ĐƯỢC CHÈN LOGIC MỚI VÀO ĐÂY */}
               {isMembersExpanded && (
   <div className="flex flex-col gap-1 mt-2 px-1 py-1">
     {members.map((member, index) => {
-      const memberId = member.id || member.user_id || index;
-      const creatorId = info.creatorId || info.creator_id || data.creatorId;
-      
-      // --- LOGIC PHÂN QUYỀN CHUẨN ĐÉT ---
-      const isCreator = creatorId === memberId;   // Người này có phải chủ nhóm không
-      const isMe = currentUserId === memberId;     // Người này có phải là BẠN không
-      const amIAdmin = creatorId === currentUserId; // BẠN có phải là chủ nhóm không
-
-      // Nút 3 chấm chỉ hiện: Nếu bạn là Admin (thấy hết) HOẶC đây chính là bạn (chỉ thấy của mình)
-      const showThreeDots = amIAdmin || isMe;
+      const memberId = getMemberId(member) || index;
+      const isOwner = member.role === "OWNER" || String(ownerId) === String(memberId);
+      const isMe = String(resolvedCurrentUserId) === String(memberId);
+      const memberName = getDisplayName(member, "Thành viên");
+      const showThreeDots = amIGroupOwner && !isMe && !isOwner;
 
       return (
         <div 
           key={memberId} 
           className="group relative flex items-center justify-between p-2 hover:bg-[#f1f2f4] rounded-xl transition-colors cursor-pointer"
         >
-          {/* --- CỘT TRÁI: AVATAR & TÊN --- */}
           <div className="flex items-center gap-3 select-none">
             <img 
-              src={member.avatar_url || member.avatarUrl || member.avatar || DEFAULT_AVATAR} 
+              src={getAvatarUrl(member, DEFAULT_AVATAR)} 
               alt="avatar" 
               className="w-10 h-10 rounded-full object-cover border border-gray-100 shadow-sm" 
             />
             <div className="flex flex-col">
               <span className="text-[14px] font-semibold text-gray-800">
-                {member.display_name || member.displayName || member.nickname || member.name || "Thành viên"} 
+                {memberName} 
                 {isMe && " (Bạn)"}
               </span>
-              {isCreator && (
+              {isOwner && (
                 <span className="text-[11px] font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded w-max mt-0.5">
                   Trưởng nhóm
                 </span>
@@ -252,10 +544,8 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
             </div>
           </div>
 
-          {/* --- CỘT PHẢI: NÚT 3 CHẤM (REACT ICON) --- */}
           {showThreeDots && (
             <div className="relative">
-              {/* Nút 3 chấm bằng FaEllipsisV */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -265,55 +555,29 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
                   ${activeMemberMenu === memberId ? 'opacity-100 bg-gray-200' : 'opacity-0 group-hover:opacity-100'}
                 `}
               >
-                <FaEllipsisV className="h-4 w-4" /> {/* 👈 Nút 3 chấm của bạn đây rồi nhé! */}
+                <FaEllipsisV className="h-4 w-4" />
               </button>
 
-              {/* Menu Dropdown hiển thị theo logic phân quyền */}
               {activeMemberMenu === memberId && (
-                <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] border border-gray-100 py-1 z-50 overflow-hidden">
-                  
-                  {/* RULE 1: Bạn là trưởng nhóm đi xử lý người khác -> Xóa khỏi nhóm */}
-                  {amIAdmin && !isMe && (
-                    <button
-                      className="w-full text-left px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 font-bold transition-colors"
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        setActiveMemberMenu(null);
-                        console.log("Xóa thành viên khỏi nhóm:", memberId);
-                      }}
-                    >
-                      Xóa khỏi nhóm
-                    </button>
-                  )}
-
-                  {/* RULE 2: Thao tác trên chính mình -> Rời nhóm */}
-                  {isMe && (
-                    <button
-                      className="w-full text-left px-4 py-2 text-[13px] text-gray-700 hover:bg-gray-50 font-bold transition-colors"
-                      onClick={(e) => { 
-                        e.stopPropagation();
-                        setActiveMemberMenu(null);
-                        console.log("Rời nhóm");
-                      }}
-                    >
-                      Rời nhóm
-                    </button>
-                  )}
-
-                  {/* RULE 3: Bạn vừa là trưởng nhóm mà lại thao tác trên chính mình -> Có thêm nút Xóa nhóm */}
-                  {amIAdmin && isMe && (
-                    <button
-                      className="w-full text-left px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 font-bold transition-colors border-t border-gray-100"
-                      onClick={(e) => { 
-                        e.stopPropagation();
-                        setActiveMemberMenu(null);
-                        console.log("Xóa toàn bộ nhóm");
-                      }}
-                    >
-                      Xóa nhóm
-                    </button>
-                  )}
-
+                <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] border border-gray-100 py-1 z-50 overflow-hidden">
+                  <button
+                    className="w-full text-left px-4 py-2 text-[13px] text-slate-700 hover:bg-blue-50 font-bold transition-colors"
+                    onClick={(e) => { 
+                      e.stopPropagation();
+                      handleTransferOwner(memberId, memberName);
+                    }}
+                  >
+                    Chuyển trưởng nhóm
+                  </button>
+                  <button
+                    className="w-full text-left px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 font-bold transition-colors"
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      handleRemoveMember(memberId, memberName);
+                    }}
+                  >
+                    Xóa khỏi nhóm
+                  </button>
                 </div>
               )}
             </div>
@@ -324,13 +588,9 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
                 </div>
               )}
 
-              {/* Nút Rời nhóm nằm ngoài danh sách sổ xuống */}
               <button
                 type="button"
-                onClick={() => {
-                    // Logic rời nhóm tại đây
-                    console.log("Đã chọn rời nhóm");
-                }}
+                onClick={handleLeaveGroup}
                 className="flex items-center gap-2 mt-2 px-4 py-3 text-[14px] font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -338,6 +598,18 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
                 </svg>
                 Rời nhóm
               </button>
+              {amIGroupOwner && (
+                <button
+                  type="button"
+                  onClick={handleDeleteGroup}
+                  className="flex items-center gap-2 px-4 py-3 text-[14px] font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all duration-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                  </svg>
+                  Giải tán nhóm
+                </button>
+              )}
             </>
           )}
 
@@ -350,7 +622,7 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
         isOpen={isMuteModalOpen}
         onClose={() => setIsMuteModalOpen(false)}
         onConfirm={(optionId) => {
-           muteSound(optionId);
+           handleMuteConversation(optionId);
         }}
       />
       <EditNicknameModal
@@ -381,11 +653,7 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
           onCreate={onCreateGroup}
           contacts={contacts}
           title="Lập nhóm"
-          initialSelectedMembers={[{
-            id: info?.target_user_id || info?.userId || conversationId,
-            name: displayName,
-            avatar: avatarUrl
-          }]}
+          initialSelectedMembers={directChatMember ? [directChatMember] : []}
         />
       </Modal>
       <Modal
@@ -406,16 +674,31 @@ export default function InfoPanel({ data, onEmojiChange, onConversationUpdated, 
           onClose={() => setIsAddMemberModalOpen(false)}
           contacts={contacts}
           existingMembers={members}
-          currentGroupName={displayName}
-          currentGroupAvatar={avatarUrl}
-          onConfirm={async (newMemberIds) => {
-              return { isSuccess: true };
-          }}
+          groupName={displayName}
+          groupAvatar={avatarUrl}
+          onAddMembers={handleAddMembers}
         />
       </Modal>
     </div>
   );
 }
+
+const resolveMutedUntil = (optionId) => {
+  const now = new Date();
+  const mutedUntil = new Date(now);
+
+  if (optionId === "30m") mutedUntil.setMinutes(mutedUntil.getMinutes() + 30);
+  else if (optionId === "1h") mutedUntil.setHours(mutedUntil.getHours() + 1);
+  else if (optionId === "24h") mutedUntil.setDate(mutedUntil.getDate() + 1);
+  else if (optionId === "8am") {
+    mutedUntil.setDate(mutedUntil.getDate() + 1);
+    mutedUntil.setHours(8, 0, 0, 0);
+  } else {
+    mutedUntil.setFullYear(mutedUntil.getFullYear() + 100);
+  }
+
+  return mutedUntil.toISOString().slice(0, 19);
+};
 
 // Nút nhỏ gọn lại, thu hẹp padding dọc (py) và chỉnh text nhỏ hơn 1 chút
 function ActionBtn({ label, children, onClick }) {

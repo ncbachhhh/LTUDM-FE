@@ -2,6 +2,12 @@ import React, { useState } from "react";
 import UserAPI from "../../../apis/user.api.jsx";
 import { useNotification } from "../../../contexts/notification.context.jsx";
 import { Form, Input, Button, Typography } from "antd";
+import {
+  getFirstValidationError,
+  validateConfirmPassword,
+  validatePassword,
+  validateRequired,
+} from "../../../utils/form-validation.util.js";
 
 const { Title, Paragraph } = Typography;
 
@@ -16,19 +22,16 @@ const ResetPasswordForm = ({ setView, resetToken }) => {
       event.preventDefault();
     }
 
-    if (!newPassword || newPassword.length < 8) {
-      api.warning({
-        message: "Cảnh báo",
-        description: "Mật khẩu mới phải có ít nhất 8 ký tự.",
-        placement: "topRight",
-      });
-      return;
-    }
+    const validationError = getFirstValidationError([
+      () => validateRequired(resetToken, "Phiên đặt lại mật khẩu"),
+      () => validatePassword(newPassword, "Mật khẩu mới"),
+      () => validateConfirmPassword(newPassword, confirmPassword),
+    ]);
 
-    if (newPassword !== confirmPassword) {
+    if (validationError) {
       api.warning({
-        message: "Cảnh báo",
-        description: "Mật khẩu xác nhận không khớp.",
+        message: "Mật khẩu không hợp lệ",
+        description: validationError,
         placement: "topRight",
       });
       return;
@@ -62,7 +65,7 @@ const ResetPasswordForm = ({ setView, resetToken }) => {
 
       <div className="mb-6">
         <Paragraph className="!text-sm !text-gray-700 !leading-relaxed !font-medium !text-center !mb-0">
-          Vui lòng nhập mật khẩu mới cho tài khoản của bạn.
+          Mật khẩu mới phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
         </Paragraph>
       </div>
 
@@ -73,9 +76,11 @@ const ResetPasswordForm = ({ setView, resetToken }) => {
         >
           <Input.Password
             required
-            placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)"
+            placeholder="Ít nhất 8 ký tự, gồm hoa/thường/số/ký tự đặc biệt"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
+            minLength={8}
+            maxLength={72}
             size="large"
             className="w-full !p-4 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"
           />
@@ -90,6 +95,8 @@ const ResetPasswordForm = ({ setView, resetToken }) => {
             placeholder="Nhập lại mật khẩu mới"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
+            minLength={8}
+            maxLength={72}
             size="large"
             className="w-full !p-4 !rounded-xl !bg-[#C7D2FE] !text-blue-900 !font-semibold placeholder-blue-500/70 border-none outline-none focus:!ring-2 focus:!ring-blue-600"
           />

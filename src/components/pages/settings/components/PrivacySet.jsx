@@ -1,13 +1,43 @@
 import React, { useState } from "react";
 import { AtSign, Eye, Shield } from "lucide-react"; // Thêm Icon Shield
-import { Switch, Select } from "antd";
+import { Switch, Select, message } from "antd";
+import UserAPI from "../../../../apis/user.api.jsx";
+import { useAuth } from "../../../../contexts/auth.context.jsx";
 
 const PrivacySet = () => {
-  const [showBirthday, setShowBirthday] = useState("full");
-  const [onlineStatus, setOnlineStatus] = useState(true);
-  const [showEmail, setShowEmail] = useState(true); 
-  const [mentionSuggestions, setMentionSuggestions] = useState(true);
-  const [readReceipts, setReadReceipts] = useState(true);
+  const { user, setUser } = useAuth();
+  const [showBirthday, setShowBirthday] = useState(
+    () => user?.showBirthday || user?.show_birthday || "full",
+  );
+  const [onlineStatus, setOnlineStatus] = useState(
+    () => user?.onlineStatus ?? user?.online_status ?? true,
+  );
+  const [showEmail, setShowEmail] = useState(
+    () => user?.showEmail ?? user?.show_email ?? true,
+  ); 
+  const [mentionSuggestions, setMentionSuggestions] = useState(
+    () => user?.mentionSuggestions ?? user?.mention_suggestions ?? true,
+  );
+  const [readReceipts, setReadReceipts] = useState(
+    () => user?.readReceipts ?? user?.read_receipts ?? true,
+  );
+  const [savingKey, setSavingKey] = useState("");
+
+  const updateSetting = async (key, value, applyLocalValue) => {
+    const previousValue = applyLocalValue();
+    setSavingKey(key);
+
+    const response = await UserAPI.updateSettings({ [key]: value });
+    setSavingKey("");
+
+    if (!response.isSuccess) {
+      previousValue();
+      message.error(response.message);
+      return;
+    }
+
+    setUser(response.data);
+  };
 
   return (
     <div className="flex flex-col gap-4 h-full w-full select-none text-left overflow-hidden">
@@ -28,7 +58,14 @@ const PrivacySet = () => {
             <span className="font-medium text-gray-700">Hiện ngày sinh</span>
             <Select 
               value={showBirthday} 
-              onChange={setShowBirthday} 
+              disabled={savingKey === "showBirthday"}
+              onChange={(value) =>
+                updateSetting("showBirthday", value, () => {
+                  const previous = showBirthday;
+                  setShowBirthday(value);
+                  return () => setShowBirthday(previous);
+                })
+              } 
               style={{ width: 220 }}
               options={[
                 { value: "full", label: "Hiện đầy đủ ngày, tháng, năm" },
@@ -38,11 +75,31 @@ const PrivacySet = () => {
           </div>
           <div className="flex items-center justify-between py-3">
             <span className="font-medium text-gray-700">Hiển thị trạng thái truy cập</span>
-            <Switch checked={onlineStatus} onChange={setOnlineStatus} />
+            <Switch
+              checked={onlineStatus}
+              loading={savingKey === "onlineStatus"}
+              onChange={(checked) =>
+                updateSetting("onlineStatus", checked, () => {
+                  const previous = onlineStatus;
+                  setOnlineStatus(checked);
+                  return () => setOnlineStatus(previous);
+                })
+              }
+            />
           </div>
           <div className="flex items-center justify-between py-3 border-t border-gray-50 mt-1">
             <span className="font-medium text-gray-700">Hiện Email</span>
-            <Switch checked={showEmail} onChange={setShowEmail} />
+            <Switch
+              checked={showEmail}
+              loading={savingKey === "showEmail"}
+              onChange={(checked) =>
+                updateSetting("showEmail", checked, () => {
+                  const previous = showEmail;
+                  setShowEmail(checked);
+                  return () => setShowEmail(previous);
+                })
+              }
+            />
           </div>
         </div>
       </div>
@@ -59,14 +116,34 @@ const PrivacySet = () => {
                 <div className="text-xs text-gray-400 mt-0.5">Gợi ý nhắc tên theo nội dung đang soạn</div>
               </div>
             </div>
-            <Switch checked={mentionSuggestions} onChange={setMentionSuggestions} />
+            <Switch
+              checked={mentionSuggestions}
+              loading={savingKey === "mentionSuggestions"}
+              onChange={(checked) =>
+                updateSetting("mentionSuggestions", checked, () => {
+                  const previous = mentionSuggestions;
+                  setMentionSuggestions(checked);
+                  return () => setMentionSuggestions(previous);
+                })
+              }
+            />
           </div>
           <div className="flex items-center justify-between py-2 mt-2 border-t border-gray-50 pt-4">
             <div className="flex items-center gap-3 text-gray-700">
               <div className="p-2 bg-gray-100 text-gray-600 rounded-lg"><Eye size={18} /></div>
               <span className="font-medium text-[15px]">Hiện trạng thái "Đã xem"</span>
             </div>
-            <Switch checked={readReceipts} onChange={setReadReceipts} />
+            <Switch
+              checked={readReceipts}
+              loading={savingKey === "readReceipts"}
+              onChange={(checked) =>
+                updateSetting("readReceipts", checked, () => {
+                  const previous = readReceipts;
+                  setReadReceipts(checked);
+                  return () => setReadReceipts(previous);
+                })
+              }
+            />
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ConversationAPI from "../../../apis/conversation.api.jsx";
+import FriendshipAPI from "../../../apis/friendship.api.jsx";
 import { CONVERSATION_TYPE } from "../../../constants/chat.constants.js";
 import { useAuth } from "../../../contexts/auth.context.jsx";
 import { useNotification } from "../../../contexts/notification.context.jsx";
@@ -8,6 +9,7 @@ import {
   applyPresenceToContact,
   mapConversationToContact,
   mapConversationsToContacts,
+  mergeConversationForContact,
   mergeConversation,
 } from "../../../features/chat/conversation.mapper.js";
 import { getCurrentUserId, getMemberId } from "../../../utils/identity.util.js";
@@ -21,6 +23,17 @@ const emptyContacts = {
   people: [],
   groups: [],
 };
+
+const getConversationRealtimeEventType = (payload) =>
+  payload?.event_type || payload?.eventType || null;
+
+const getConversationRealtimeId = (payload) =>
+  payload?.conversation_id ||
+  payload?.conversationId ||
+  payload?.conversation?.id ||
+  payload?.id;
+
+const getConversationRealtimeData = (payload) => payload?.conversation || payload;
 
 const ChatPage = () => {
   const { user } = useAuth();
@@ -36,7 +49,6 @@ const ChatPage = () => {
   const [currentEmoji, setCurrentEmoji] = useState("👍");
   const [loadingConversations, setLoadingConversations] = useState(false);
 
-  const playedSoundMessageIds = useRef(new Set()); 
   const updateCurrentConversation = useCallback(
     (updatedConversation) => {
       if (!updatedConversation?.id) return;
@@ -47,11 +59,28 @@ const ChatPage = () => {
 
       setCurrentConvo((current) => {
         if (!current || current.conversation_id !== updatedConversation.id) return current;
-        return mapConversationToContact(updatedConversation, currentUserId);
+        return mergeConversationForContact(current, updatedConversation, currentUserId);
       });
     },
     [currentUserId]
   );
+
+  const removeConversation = useCallback((conversationId) => {
+    if (!conversationId) return;
+
+    setContacts((previousContacts) => ({
+      people: previousContacts.people.filter(
+        (contact) => String(contact.conversation_id) !== String(conversationId)
+      ),
+      groups: previousContacts.groups.filter(
+        (contact) => String(contact.conversation_id) !== String(conversationId)
+      ),
+    }));
+
+    setCurrentConvo((current) =>
+      current && String(current.conversation_id) === String(conversationId) ? null : current
+    );
+  }, []);
 
   const fetchConversations = useCallback(async () => {
     if (!currentUserId) return;
@@ -97,9 +126,25 @@ const ChatPage = () => {
       if (!currentUserId) return;
 
       try {
-        subscription = await WebSocketAPI.subscribeConversationUpdates((updatedConversation) => {
-          if (!mounted || !updatedConversation?.id) return;
+        subscription = await WebSocketAPI.subscribeConversationUpdates((payload) => {
+          if (!mounted) return;
+
+          const eventType = getConversationRealtimeEventType(payload);
+          const conversationId = getConversationRealtimeId(payload);
+
+          if (eventType === "CONVERSATION_REMOVED") {
+            removeConversation(conversationId);
+            window.dispatchEvent(new CustomEvent("conversation:changed", { detail: payload }));
+            return;
+          }
+
+          const updatedConversation = getConversationRealtimeData(payload);
+          if (!updatedConversation?.id) return;
+
           updateCurrentConversation(updatedConversation);
+          if (eventType) {
+            window.dispatchEvent(new CustomEvent("conversation:changed", { detail: payload }));
+          }
         });
       } catch (error) {
         console.error("SUBSCRIBE CONVERSATION UPDATES ERROR:", error);
@@ -112,7 +157,7 @@ const ChatPage = () => {
       mounted = false;
       subscription?.unsubscribe();
     };
-  }, [currentUserId, updateCurrentConversation]);
+  }, [currentUserId, removeConversation, updateCurrentConversation]);
 
   useEffect(() => {
     const handlePresenceUpdate = (event) => {
@@ -248,6 +293,76 @@ const ChatPage = () => {
     [api, currentUserId]
   );
 
+  const handleDeleteConversationForMe = useCallback(
+    async (conversationId) => {
+      const result = await ConversationAPI.deleteConversationForMe(conversationId);
+
+      if (!result.isSuccess) {
+        api.error({
+          message: "Xóa đoạn chat thất bại",
+          description: result.message,
+          placement: "topRight",
+        });
+        return false;
+      }
+
+      removeConversation(conversationId);
+      api.success({
+        message: "Đã xóa đoạn chat",
+        description: "Lịch sử tin nhắn hiện tại đã được ẩn với bạn.",
+        placement: "topRight",
+      });
+      return true;
+    },
+    [api, removeConversation]
+  );
+
+  const handleBlockUser = useCallback(
+    async (userId, conversationId) => {
+      const result = await FriendshipAPI.blockUser(userId);
+
+      if (!result.isSuccess) {
+        api.error({
+          message: "Chặn người dùng thất bại",
+          description: result.message,
+          placement: "topRight",
+        });
+        return false;
+      }
+
+      removeConversation(conversationId);
+      api.success({
+        message: "Đã chặn người dùng",
+        placement: "topRight",
+      });
+      return true;
+    },
+    [api, removeConversation]
+  );
+
+  const handleEmojiChange = useCallback(
+    async (emoji) => {
+      const conversationId = currentConvo?.conversation_id || currentConvo?.conversationId || currentConvo?.id;
+      if (!conversationId) return;
+
+      const result = await ConversationAPI.updateEmoji(conversationId, emoji);
+      if (!result.isSuccess) {
+        api.error({
+          message: "Cập nhật biểu tượng thất bại",
+          description: result.message,
+          placement: "topRight",
+        });
+        return;
+      }
+
+      setCurrentEmoji(emoji);
+      if (result.data) {
+        updateCurrentConversation(result.data);
+      }
+    },
+    [api, currentConvo, updateCurrentConversation],
+  );
+
   useEffect(() => {
     if (!directUserId || !currentUserId) return undefined;
 
@@ -272,17 +387,21 @@ const ChatPage = () => {
   useEffect(() => {
     if (!directGroupId || contacts.groups.length === 0) return;
 
-    const foundGroup = contacts.groups.find(
-      (group) => String(group.id) === String(directGroupId)
-    );
+    const timerId = window.setTimeout(() => {
+      const foundGroup = contacts.groups.find(
+        (group) => String(group.id) === String(directGroupId)
+      );
 
-    if (foundGroup) {
-      setCurrentConvo(foundGroup);
-    }
+      if (foundGroup) {
+        setCurrentConvo(foundGroup);
+      }
 
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("groupId");
-    setSearchParams(nextParams, { replace: true });
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("groupId");
+      setSearchParams(nextParams, { replace: true });
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
   }, [directGroupId, contacts.groups, searchParams, setSearchParams]);
 
   return (
@@ -295,6 +414,8 @@ const ChatPage = () => {
           onSelect={handleSelectContact}
           onOpenDirectConversation={handleOpenDirectConversation}
           onCreateGroup={handleCreateGroupConversation}
+          onDeleteConversation={handleDeleteConversationForMe}
+          onBlockUser={handleBlockUser}
         />
       </div>
 
@@ -310,7 +431,7 @@ const ChatPage = () => {
                 data={currentConvo}
                 isInfoOpen={isInfoOpen}
                 setIsInfoOpen={setIsInfoOpen}
-                currentEmoji={currentEmoji}
+                currentEmoji={currentConvo?.emoji || currentEmoji}
               />
             </div>
 
@@ -318,8 +439,10 @@ const ChatPage = () => {
               <div className="h-full w-[340px] shrink-0 animate-fade-in">
                 <InfoPanel
                   data={currentConvo}
-                  onEmojiChange={(newEmoji) => setCurrentEmoji(newEmoji)}
+                  currentUserId={currentUserId}
+                  onEmojiChange={handleEmojiChange}
                   onConversationUpdated={updateCurrentConversation}
+                  onConversationRemoved={removeConversation}
                   contacts={contacts}                           
                   onCreateGroup={handleCreateGroupConversation} 
                 />

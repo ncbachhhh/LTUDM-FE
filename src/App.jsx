@@ -9,6 +9,39 @@ import ProfilePage from "./components/pages/profile/ProfilePage.jsx"; // Đã c�
 import SettingsPage from "./components/pages/settings/SettingPage.jsx";
 import { useAuth } from "./contexts/auth.context.jsx";
 import { Spin } from "antd";
+import { useEffect } from "react";
+
+const DEFAULT_CHAT_COLOR = "#0033FF";
+
+function getUserTheme(user) {
+  return user?.theme_mode || user?.themeMode || "light";
+}
+
+function getUserChatColor(user) {
+  return user?.chat_color || user?.chatColor || DEFAULT_CHAT_COLOR;
+}
+
+function AppearanceSync() {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const theme = getUserTheme(user) === "dark" ? "dark" : "light";
+    const chatColor = getUserChatColor(user);
+
+    root.dataset.theme = theme;
+    root.style.setProperty("--chat-bubble-bg", chatColor);
+    root.style.setProperty("--app-accent", chatColor);
+
+    return () => {
+      root.dataset.theme = "light";
+      root.style.setProperty("--chat-bubble-bg", DEFAULT_CHAT_COLOR);
+      root.style.setProperty("--app-accent", DEFAULT_CHAT_COLOR);
+    };
+  }, [user]);
+
+  return null;
+}
 
 function LoadingScreen() {
   return (
@@ -49,6 +82,7 @@ function PublicRoute({ children }) {
 function App() {
   return (
     <SoundProvider>
+      <AppearanceSync />
       <Routes>
         <Route 
           path="/" 

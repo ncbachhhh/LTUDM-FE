@@ -71,7 +71,10 @@ export default function MessageList({
         const sender = (members || []).find(m => String(getMemberId(m)) === String(currentSenderId));
         const senderAvatar = sender ? getAvatarUrl(sender, DEFAULT_AVATAR) : avatar;
         const senderName = sender ? getDisplayName(sender) : "Người dùng";
+        const replySender = (members || []).find(m => String(getMemberId(m)) === String(message.replySenderId));
+        const replySenderName = replySender ? getDisplayName(replySender) : message.replySenderName || "Người dùng";
         const showSenderName = !message.isOwn && isGroup && showAvatar;
+        const isLastMessage = index === messages.length - 1;
 
         return (
           <MessageItem
@@ -91,10 +94,13 @@ export default function MessageList({
             time={showTime ? (message.createdAt || message.created_at || message.time) : null}
             isReply={message.isReply}
             replyText={message.replyText}
-            replySenderName={message.replySenderName}
+            replySenderName={replySenderName}
             isPinned={message.isPinned}
             isRecalled={message.isRecalled}
             isDeletedForMe={message.isDeletedForMe}
+            seenBy={message.seenBy}
+            showDeliveryStatus={isLastMessage && message.isOwn}
+            isGroup={isGroup}
             message={message}
             onContentLoad={onContentLoad}
             onReply={onReply}

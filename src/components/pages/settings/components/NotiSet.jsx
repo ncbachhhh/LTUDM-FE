@@ -1,42 +1,56 @@
-import React, { useState, useEffect } from "react";
-import { Bell, Volume2, Play, Pause, ChevronDown, Check } from "lucide-react";
-import { Switch, Radio } from "antd";
+import { useEffect, useState } from "react";
+import { Volume2, Play, Pause, ChevronDown, Check } from "lucide-react";
+import { Switch, message } from "antd";
+import UserAPI from "../../../../apis/user.api.jsx";
+import { useAuth } from "../../../../contexts/auth.context.jsx";
 
-// ── COMPONENT: MÔ PHỎNG LAPTOP ──
-const LaptopGraphic = ({ type, selected, onClick }) => (
-  <div onClick={onClick} className="flex flex-col items-center cursor-pointer select-none">
-    <div className={`relative w-36 h-[92px] border-[2px] rounded-t-2xl transition-all duration-300 flex items-center justify-center overflow-hidden ${selected ? "border-[#0029FF] bg-[#F4F7FF]" : "border-[#E5E7EB] bg-[#F9FAFB]"}`}>
-      {type === "on" && (
-        <div className={`absolute bottom-3 right-4 w-12 h-6 rounded-[3px] p-1 flex flex-col justify-center gap-0.5 shadow-sm transition-colors duration-300 ${selected ? "bg-[#0029FF]" : "bg-[#D1D5DB]"}`}>
-          <div className="w-2.5 h-1 bg-white rounded-[1px]" />
-          <div className="w-6 h-[1.5px] bg-white/60 rounded-[1px]" />
-        </div>
-      )}
-    </div>
-    <div className={`w-[164px] h-[6px] border-[2px] border-t-0 rounded-b-md transition-all duration-300 ${selected ? "border-[#0029FF] bg-[#0029FF]" : "border-[#E5E7EB] bg-[#E5E7EB]"}`} />
-  </div>
-);
+const SOUND_LIST = [
+  { id: "default", name: "sound1 (default)", url: "/sounds/default.mp3" },
+  { id: "sound2", name: "sound2", url: "/sounds/sound2.mp3" },
+  { id: "sound3", name: "sound3", url: "/sounds/sound3.mp3" },
+  { id: "sound4", name: "sound4", url: "/sounds/sound4.mp3" },
+  { id: "sound5", name: "sound5", url: "/sounds/sound5.mp3" },
+  { id: "sound6", name: "sound6", url: "/sounds/sound6.mp3" },
+  { id: "sound7", name: "sound7", url: "/sounds/sound7.mp3" },
+  { id: "sound8", name: "sound8", url: "/sounds/sound8.mp3" },
+];
+
+const getInitialSound = () => {
+  return SOUND_LIST[0];
+};
+
+const getUserSoundId = (user) =>
+  user?.notificationSound || user?.notification_sound || getInitialSound().id;
 
 const NotiSet = () => {
-  const [notificationStatus, setNotificationStatus] = useState("on");
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { user, setUser } = useAuth();
+  const [soundEnabled, setSoundEnabled] = useState(
+    () => user?.soundEnabled ?? user?.sound_enabled ?? true,
+  );
   const [showSoundDropdown, setShowSoundDropdown] = useState(false);
-
-  // Danh sách đủ đúng 8 âm thanh
-  const soundList = [
-    { id: "default", name: "sound1 (default)", url: "/sounds/default.mp3" },
-    { id: "sound2", name: "sound2", url: "/sounds/sound2.mp3" },
-    { id: "sound3", name: "sound3", url: "/sounds/sound3.mp3" },
-    { id: "sound4", name: "sound4", url: "/sounds/sound4.mp3" },
-    { id: "sound5", name: "sound5", url: "/sounds/sound5.mp3" },
-    { id: "sound6", name: "sound6", url: "/sounds/sound6.mp3" },
-    { id: "sound7", name: "sound7", url: "/sounds/sound7.mp3" },
-    { id: "sound8", name: "sound8", url: "/sounds/sound8.mp3" },
-  ];
-
-  const [selectedSound, setSelectedSound] = useState(soundList[0]);
+  const [savingKey, setSavingKey] = useState("");
+  const [selectedSoundId, setSelectedSoundId] = useState(() => getUserSoundId(user));
   const [currentAudio, setCurrentAudio] = useState(null);
   const [playingId, setPlayingId] = useState(null);
+
+  const effectiveSelectedSound =
+    SOUND_LIST.find((sound) => sound.id === selectedSoundId) || getInitialSound();
+
+  const updateSetting = async (key, value, applyLocalValue) => {
+    const rollback = applyLocalValue();
+    setSavingKey(key);
+
+    const response = await UserAPI.updateSettings({ [key]: value });
+    setSavingKey("");
+
+    if (!response.isSuccess) {
+      rollback();
+      message.error(response.message);
+      return;
+    }
+
+    setUser(response.data);
+  };
 
   // Xử lý phát nghe thử âm thanh
   const handlePlayPreview = (e, sound) => {
@@ -60,10 +74,10 @@ const NotiSet = () => {
     setPlayingId(sound.id);
     setCurrentAudio(audio);
 
-    audio.onended = () => {
+    audio.addEventListener("ended", () => {
       setPlayingId(null);
       setCurrentAudio(null);
-    };
+    });
   };
 
   useEffect(() => {
@@ -78,31 +92,12 @@ const NotiSet = () => {
       {/* ── TIÊU ĐỀ CHÍNH ── */}
       <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex-shrink-0">
         <h2 className="text-[16px] font-bold text-slate-700 px-1 flex items-center gap-2">
-          <Bell size={18} className="text-slate-500" />
-          Thông báo
+          <Volume2 size={18} className="text-slate-500" />
+          Âm thanh thông báo
         </h2>
       </div>
 
-      {/* ── CỤM 1: CÀI ĐẶT THÔNG BÁO ── */}
-      <div className="flex flex-col gap-2 flex-shrink-0">
-        <h2 className="text-[16px] font-bold text-slate-800 px-1">Cài đặt thông báo</h2>
-        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex gap-12 items-center">
-          <div className="flex flex-col items-center gap-4">
-            <LaptopGraphic type="on" selected={notificationStatus === "on"} onClick={() => setNotificationStatus("on")} />
-            <Radio checked={notificationStatus === "on"} onChange={() => setNotificationStatus("on")} className="text-[15px] font-semibold text-slate-700">
-              Bật
-            </Radio>
-          </div>
-          <div className="flex flex-col items-center gap-4">
-            <LaptopGraphic type="off" selected={notificationStatus === "off"} onClick={() => setNotificationStatus("off")} />
-            <Radio checked={notificationStatus === "off"} onChange={() => setNotificationStatus("off")} className="text-[15px] font-semibold text-slate-700">
-              Tắt
-            </Radio>
-          </div>
-        </div>
-      </div>
-
-      {/* ── CỤM 2: ÂM THANH THÔNG BÁO ── */}
+      {/* ── ÂM THANH THÔNG BÁO ── */}
       <div className="flex flex-col gap-2 flex-shrink-0">
         <h2 className="text-[16px] font-bold text-slate-800 px-1">Âm thanh thông báo</h2>
         <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100 flex flex-col gap-4">
@@ -110,10 +105,18 @@ const NotiSet = () => {
           {/* Dòng bật tắt */}
           <div className="flex items-center justify-between">
             <p className="text-[15px] font-medium text-slate-500">Phát âm thanh khi có tin nhắn mới</p>
-            <Switch checked={soundEnabled} onChange={(checked) => {
-              setSoundEnabled(checked);
-              if(!checked) setShowSoundDropdown(false);
-            }} />
+            <Switch
+              checked={soundEnabled}
+              loading={savingKey === "sound_enabled"}
+              onChange={(checked) =>
+                updateSetting("sound_enabled", checked, () => {
+                  const previous = soundEnabled;
+                  setSoundEnabled(checked);
+                  if (!checked) setShowSoundDropdown(false);
+                  return () => setSoundEnabled(previous);
+                })
+              }
+            />
           </div>
 
           {/* Bộ chọn âm thanh phẳng */}
@@ -128,7 +131,7 @@ const NotiSet = () => {
               >
                 <div className="flex items-center gap-3">
                   <Volume2 size={18} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
-                  <span className="text-[15px] font-semibold text-slate-700">{selectedSound.name}</span>
+                  <span className="text-[15px] font-semibold text-slate-700">{effectiveSelectedSound.name}</span>
                 </div>
                 <ChevronDown size={18} className={`text-slate-400 transition-transform duration-200 ${showSoundDropdown ? "rotate-180" : ""}`} />
               </div>
@@ -140,15 +143,19 @@ const NotiSet = () => {
                   
                   {/* Giải pháp: max-h-[180px] bọc overflow-y-auto và ép padding-bottom pb-2 để lộ diện hoàn toàn sound8 khi cuộn */}
                   <div className="absolute top-full left-0 w-full mt-1 border border-gray-100 bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] max-h-[185px] overflow-y-auto p-1.5 pb-2.5 flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-150 scrollbar-thin">
-                    {soundList.map((sound) => {
-                      const isSelected = selectedSound.id === sound.id;
+                    {SOUND_LIST.map((sound) => {
+                      const isSelected = effectiveSelectedSound.id === sound.id;
                       const isSoundPlaying = playingId === sound.id;
                       return (
                         <div
                           key={sound.id}
                           onClick={() => {
-                            setSelectedSound(sound);
                             setShowSoundDropdown(false);
+                            updateSetting("notification_sound", sound.id, () => {
+                              const previous = selectedSoundId;
+                              setSelectedSoundId(sound.id);
+                              return () => setSelectedSoundId(previous);
+                            });
                           }}
                           className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all ${isSelected ? "bg-[#F4F7FF] text-[#0029FF]" : "hover:bg-slate-50 text-slate-700"}`}
                         >

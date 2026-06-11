@@ -1,23 +1,76 @@
-import React, { useState } from "react";
-import { Smartphone, Trash2, KeyRound } from "lucide-react";
-import { Switch, Input, Modal, message } from "antd";
+import { useState } from "react";
+import { Trash2, KeyRound } from "lucide-react";
+import { Input, Modal, message } from "antd";
+import UserAPI from "../../../../apis/user.api.jsx";
+import WebSocketAPI from "../../../../apis/websocket.api.jsx";
+import { useAuth } from "../../../../contexts/auth.context.jsx";
+import { clearStoredAuth } from "../../../../helpers/token.helper.js";
+import {
+  getFirstValidationError,
+  validateConfirmPassword,
+  validatePassword,
+  validateRequired,
+} from "../../../../utils/form-validation.util.js";
 
 const SecuritySet = () => {
-  const [twoFactor, setTwoFactor] = useState(false);
+  const { setUser } = useAuth();
   const [isChangingPass, setIsChangingPass] = useState(false);
   const [passData, setPassData] = useState({ current: "", new: "", confirm: "" });
   const [error, setError] = useState(""); 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
-  const handleSavePassword = () => {
-    if (passData.current !== "123456") return setError("Mật khẩu hiện tại không chính xác.");
-    if (passData.new !== passData.confirm) return setError("Mật khẩu mới không khớp với xác nhận.");
-    if (passData.new.length < 6) return setError("Mật khẩu mới phải có ít nhất 6 ký tự.");
+  const handleSavePassword = async () => {
+    const validationError = getFirstValidationError([
+      () => validateRequired(passData.current, "Mật khẩu hiện tại"),
+      () => validatePassword(passData.new, "Mật khẩu mới"),
+      () => validateConfirmPassword(passData.new, passData.confirm),
+      () =>
+        passData.current === passData.new
+          ? "Mật khẩu mới không được trùng mật khẩu hiện tại."
+          : "",
+    ]);
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     
+    setSavingPassword(true);
     setError("");
-    setIsChangingPass(false);
+    const response = await UserAPI.changePassword({
+      currentPassword: passData.current,
+      newPassword: passData.new,
+      confirmPassword: passData.confirm,
+    });
+    setSavingPassword(false);
+
+    if (!response.isSuccess) {
+      setError(response.message);
+      return;
+    }
+
     message.success("Đổi mật khẩu thành công!");
+    setIsChangingPass(false);
     setPassData({ current: "", new: "", confirm: "" }); 
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    const response = await UserAPI.deleteMyAccount();
+    setDeletingAccount(false);
+
+    if (!response.isSuccess) {
+      message.error(response.message);
+      return;
+    }
+
+    setShowDeleteModal(false);
+    await WebSocketAPI.disconnect();
+    clearStoredAuth();
+    setUser(null);
+    message.success("Tài khoản đã được xóa.");
   };
 
   return (
@@ -50,18 +103,27 @@ const SecuritySet = () => {
                 <Input.Password 
                   placeholder="Mật khẩu hiện tại" 
                   value={passData.current}
+                  disabled={savingPassword}
+                  minLength={1}
+                  maxLength={72}
                   onChange={(e) => setPassData({...passData, current: e.target.value})}
                   className="rounded-xl py-2"
                 />
                 <Input.Password 
-                  placeholder="Mật khẩu mới" 
+                  placeholder="Ít nhất 8 ký tự, gồm hoa/thường/số/ký tự đặc biệt" 
                   value={passData.new}
+                  disabled={savingPassword}
+                  minLength={8}
+                  maxLength={72}
                   onChange={(e) => setPassData({...passData, new: e.target.value})}
                   className="rounded-xl py-2"
                 />
                 <Input.Password 
                   placeholder="Xác nhận mật khẩu" 
                   value={passData.confirm}
+                  disabled={savingPassword}
+                  minLength={8}
+                  maxLength={72}
                   onChange={(e) => setPassData({...passData, confirm: e.target.value})}
                   className="rounded-xl py-2"
                 />
@@ -69,36 +131,34 @@ const SecuritySet = () => {
                 {error && <p className="text-red-500 text-xs px-1">{error}</p>}
 
                 <div className="flex gap-3 mt-1">
-                  <button onClick={() => { setIsChangingPass(false); setError(""); }} className="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 font-semibold text-gray-700 text-sm border-none cursor-pointer">Hủy</button>
-                  <button onClick={handleSavePassword} className="px-5 py-2 rounded-xl bg-[#0033FF] hover:bg-blue-700 font-semibold text-white text-sm border-none cursor-pointer">Lưu</button>
+                  <button
+                    type="button"
+                    disabled={savingPassword}
+                    onClick={() => { setIsChangingPass(false); setError(""); }}
+                    className="px-5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-60 font-semibold text-gray-700 text-sm border-none cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingPassword}
+                    onClick={handleSavePassword}
+                    className="px-5 py-2 rounded-xl bg-[#0033FF] hover:bg-blue-700 disabled:bg-blue-300 font-semibold text-white text-sm border-none cursor-pointer"
+                  >
+                    {savingPassword ? "Đang lưu..." : "Lưu"}
+                  </button>
                 </div>
               </div>
             )}
           </div>
-
-          <div className="h-px bg-gray-100 my-1" />
-
-          <div className="flex items-center justify-between px-1 py-1">
-            <div>
-              <div className="font-medium text-gray-700">Xác thực 2 bước</div>
-              <div className="text-xs text-gray-400">Thêm lớp bảo mật cho tài khoản</div>
-            </div>
-            <Switch checked={twoFactor} onChange={setTwoFactor} />
-          </div>
         </div>
       </div>
 
-      {/* ── CỤM 2: THIẾT BỊ & DỮ LIỆU ── */}
+      {/* ── CỤM 2: DỮ LIỆU ── */}
       <div className="flex flex-col gap-2 flex-shrink-0">
-        <h2 className="text-[16px] font-bold text-black px-1">Thiết bị & Dữ liệu</h2>
+        <h2 className="text-[16px] font-bold text-black px-1">Dữ liệu</h2>
         <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between py-2 hover:bg-gray-50 px-2 rounded-xl transition-colors cursor-pointer">
-            <div className="flex items-center gap-3 text-gray-700">
-              <div className="p-2 bg-green-50 text-green-600 rounded-lg"><Smartphone size={18} /></div>
-              <span className="font-medium">Thiết bị đã đăng nhập</span>
-            </div>
-          </div>
-          <div onClick={() => setShowDeleteModal(true)} className="flex items-center justify-between py-2 mt-1 px-2 hover:bg-red-50 rounded-xl transition-colors cursor-pointer border-t border-gray-50 pt-3">
+          <div onClick={() => setShowDeleteModal(true)} className="flex items-center justify-between py-2 px-2 hover:bg-red-50 rounded-xl transition-colors cursor-pointer">
             <div className="flex items-center gap-3 text-red-500">
               <div className="p-2 bg-red-50 rounded-lg"><Trash2 size={18} /></div>
               <span className="font-medium">Xóa tài khoản</span>
@@ -111,11 +171,9 @@ const SecuritySet = () => {
       <Modal
         title="Xác nhận xóa tài khoản"
         open={showDeleteModal}
-        onOk={() => {
-          setShowDeleteModal(false);
-          message.success("Đã gửi yêu cầu xóa tài khoản!");
-        }}
+        onOk={handleDeleteAccount}
         onCancel={() => setShowDeleteModal(false)}
+        confirmLoading={deletingAccount}
         okText="Đồng ý"
         cancelText="Hủy"
         okButtonProps={{ danger: true }}

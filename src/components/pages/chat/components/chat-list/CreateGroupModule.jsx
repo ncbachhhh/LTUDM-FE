@@ -1,14 +1,31 @@
-import React, { useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "antd";
 import { X, Search, Users, Camera, Plus, Check } from "lucide-react";
-import { GROUP_AVATAR } from "../../../../../constants/asset.constants.js";
+import FriendshipAPI from "../../../../../apis/friendship.api.jsx";
+import { DEFAULT_AVATAR } from "../../../../../constants/asset.constants.js";
+import { getAvatarUrl, getDisplayName, getMemberId } from "../../../../../utils/identity.util.js";
+
+const getFriendFromResponse = (friendship) => {
+  if (!friendship?.user) return friendship;
+
+  return {
+    ...friendship.user,
+    friendship_id: friendship.id,
+    friendshipId: friendship.id,
+    friendship_status: friendship.status || "ACCEPTED",
+    friendshipStatus: friendship.status || "ACCEPTED",
+  };
+};
+
+const getFriendUserId = (user) => getMemberId(user) || user?._id;
+const EMPTY_SELECTED_MEMBERS = [];
 
 export default function CreateGroupModule({ 
   isOpen, 
   onClose, 
   onCreate, 
   contacts = { people: [] },
-  initialSelectedMembers = [], // Bổ sung
+  initialSelectedMembers = EMPTY_SELECTED_MEMBERS,
   title = "Tạo nhóm chat"      // Bổ sung
 }) {
   const [groupName, setGroupName] = useState("");
@@ -17,11 +34,46 @@ export default function CreateGroupModule({
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [friendsLoaded, setFriendsLoaded] = useState(false);
+  const [loadingFriends, setLoadingFriends] = useState(false);
 
   const fileInputRef = useRef(null);
 
-  const friendsList = useMemo(() => contacts?.people || [], [contacts?.people]);
-  const getFriendUserId = (user) => user?.userId || user?.user_id || user?.id;
+  const fallbackFriendsList = useMemo(() => contacts?.people || [], [contacts?.people]);
+  const friendsList = friendsLoaded ? friends : fallbackFriendsList;
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedMembers(initialSelectedMembers);
+    }
+  }, [isOpen, initialSelectedMembers]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    let cancelled = false;
+
+    const loadFriends = async () => {
+      setLoadingFriends(true);
+      const result = await FriendshipAPI.getFriends();
+
+      if (!cancelled && result.isSuccess) {
+        setFriends((result.data || []).map(getFriendFromResponse).filter(Boolean));
+        setFriendsLoaded(true);
+      }
+
+      if (!cancelled) {
+        setLoadingFriends(false);
+      }
+    };
+
+    loadFriends();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   // Gợi ý tên khi gõ từ khóa, loại bỏ người đã được chọn
   const suggestions = useMemo(() => {
@@ -29,7 +81,11 @@ export default function CreateGroupModule({
     if (!query) return [];
     return friendsList.filter(
       (user) =>
-        (user.name.toLowerCase().includes(query) || user.email?.toLowerCase().includes(query)) &&
+        (
+          getDisplayName(user, "").toLowerCase().includes(query) ||
+          user.email?.toLowerCase().includes(query) ||
+          user.username?.toLowerCase().includes(query)
+        ) &&
         !selectedMembers.find((m) => String(getFriendUserId(m)) === String(getFriendUserId(user)))
     );
   }, [friendsList, memberInput, selectedMembers]);
@@ -163,11 +219,11 @@ export default function CreateGroupModule({
                   className="flex items-center gap-1.5 rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[13px] font-bold text-[#4F46E5]"
                 >
                   <img
-                    src={member.avatar}
+                    src={getAvatarUrl(member, DEFAULT_AVATAR)}
                     alt=""
                     className="h-5 w-5 rounded-full object-cover border border-white"
                   />
-                  <span>{member.name}</span>
+                  <span>{getDisplayName(member, "Bạn bè")}</span>
                   <button
                     onClick={() => handleRemoveMember(getFriendUserId(member))}
                     className="ml-0.5 text-[#6366F1] hover:text-red-500 transition-colors"
@@ -203,10 +259,18 @@ export default function CreateGroupModule({
                     onClick={() => handleAddMember(user)}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#F0F4FF]"
                   >
-                    <img src={user.avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
+                    <img
+                      src={getAvatarUrl(user, DEFAULT_AVATAR)}
+                      alt=""
+                      className="h-9 w-9 rounded-full object-cover"
+                    />
                     <div className="flex-1 min-w-0">
-                      <p className="truncate text-[14px] font-bold text-slate-800">{user.name}</p>
-                      <p className="truncate text-[12px] text-slate-400">{user.email || "Thành viên"}</p>
+                      <p className="truncate text-[14px] font-bold text-slate-800">
+                        {getDisplayName(user, "Bạn bè")}
+                      </p>
+                      <p className="truncate text-[12px] text-slate-400">
+                        {user.email || user.username || "Bạn bè"}
+                      </p>
                     </div>
                     <Plus size={16} className="text-[#6366F1] shrink-0" />
                   </button>
@@ -235,9 +299,15 @@ export default function CreateGroupModule({
                       isSelected ? "bg-[#EEF2FF]" : "hover:bg-[#F8FAFF]"
                     }`}
                   >
-                    <img src={friend.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    <img
+                      src={getAvatarUrl(friend, DEFAULT_AVATAR)}
+                      alt=""
+                      className="h-10 w-10 rounded-full object-cover"
+                    />
                     <div className="flex-1 min-w-0">
-                      <p className="truncate text-[14px] font-bold text-slate-800">{friend.name}</p>
+                      <p className="truncate text-[14px] font-bold text-slate-800">
+                        {getDisplayName(friend, "Bạn bè")}
+                      </p>
                     </div>
                     <button
                       onClick={() =>
@@ -255,6 +325,12 @@ export default function CreateGroupModule({
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {friendsList.length === 0 && (
+          <div className="rounded-2xl bg-gray-50 px-4 py-3 text-center text-[13px] font-semibold text-slate-400">
+            {loadingFriends ? "Đang tải danh sách bạn bè..." : "Chưa có bạn bè nào để thêm vào nhóm."}
           </div>
         )}
 
