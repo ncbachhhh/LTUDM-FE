@@ -256,6 +256,7 @@ export default function MessageItem({
   onPin,
   onRecall,
   onDelete,
+  highlighted = false,
 }) {
   const isImage = type === "IMAGE";
   const isFile = type === "FILE";
@@ -318,7 +319,9 @@ export default function MessageItem({
   return (
     <div
       id={`message-${id}`}
-      className={`group flex w-full ${spacingClass} ${isOwn ? "flex-row-reverse" : "flex-row"}`}
+      className={`group flex w-full rounded-2xl transition-colors duration-300 ${
+        highlighted ? "bg-amber-100/70 px-2 py-1" : ""
+      } ${spacingClass} ${isOwn ? "flex-row-reverse" : "flex-row"}`}
     >
       {!isOwn && (
         <div className="mr-2 flex-shrink-0 self-end">

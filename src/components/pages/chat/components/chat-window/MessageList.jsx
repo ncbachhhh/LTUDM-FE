@@ -14,6 +14,7 @@ export default function MessageList({
   onPin,
   onRecall,
   onDelete,
+  highlightedMessageId,
 }) {
   if (!messages || messages.length === 0) {
     return (
@@ -107,6 +108,7 @@ export default function MessageList({
             onPin={onPin}
             onRecall={onRecall}
             onDelete={onDelete}
+            highlighted={String(highlightedMessageId) === String(message.id)}
           />
         );
       })}

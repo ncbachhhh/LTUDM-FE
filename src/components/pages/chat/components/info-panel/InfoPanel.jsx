@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, Spin, Tooltip, Typography, Modal } from "antd";
-import { FaBell, FaBellSlash, FaSearch, FaUsers, FaUserPlus, FaEllipsisV } from "react-icons/fa";
+import { FaEllipsisV } from "react-icons/fa";
 import StatCard from "./StatCard.jsx";
-import MuteNotificationModal from "./modals/MuteNotificationModal.jsx";
 import SearchChat from "./modals/SearchChat.jsx";
 import FileManager from "./modals/FileManager.jsx";
 import EditNicknameModal from "./modals/EditNickname.jsx";
@@ -10,7 +9,7 @@ import ChangeEmojiModal from "./modals/ChangeEmoji.jsx";
 import ConversationAPI from "../../../../../apis/conversation.api.jsx";
 import MessageAPI from "../../../../../apis/message.api.jsx";
 import { DEFAULT_AVATAR } from "../../../../../constants/asset.constants.js";
-import { Image, ChevronRight, ArrowRight, UserPlus, Users, Search, Bell, BellOff } from 'lucide-react';
+import { Image, ChevronRight, ArrowRight, UserPlus, Users, Search } from 'lucide-react';
 import CreateGroupModule from "../chat-list/CreateGroupModule.jsx";
 import AddMemberModule from "./AddMemberModule.jsx";
 import { getAvatarUrl, getDisplayName, getMemberId } from "../../../../../utils/identity.util.js";
@@ -35,14 +34,12 @@ export default function InfoPanel({
 }) {
   const [conversationInfo, setConversationInfo] = useState(null);
   const [loadingInfo, setLoadingInfo] = useState(false);
-  const [isMuteModalOpen, setIsMuteModalOpen] = useState(false);
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState("default");
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [imagePreviewMessages, setImagePreviewMessages] = useState([]);
-  const [nowMs, setNowMs] = useState(0);
   
   // State điều khiển menu 3 chấm
   const [activeMemberMenu, setActiveMemberMenu] = useState(null);
@@ -244,17 +241,6 @@ export default function InfoPanel({
     };
   }, [conversationId]);
 
-  useEffect(() => {
-    const updateNow = () => setNowMs(Date.now());
-    const timerId = window.setTimeout(updateNow, 0);
-    const intervalId = window.setInterval(updateNow, 60000);
-
-    return () => {
-      window.clearTimeout(timerId);
-      window.clearInterval(intervalId);
-    };
-  }, []);
-
   const info = conversationInfo || data || {};
   const displayName = info.display_name || info.displayName || info.title || info.name || "Hội thoại";
   const avatarUrl = info.avatar_url || info.avatarUrl || info.avatar || DEFAULT_AVATAR;
@@ -313,38 +299,6 @@ export default function InfoPanel({
 
   const directChatMember = resolveDirectChatMember();
 
-  const mutedUntil = info.muted_until || info.mutedUntil || data?.mutedUntil || data?.muted_until;
-  const isConversationMuted = mutedUntil ? new Date(mutedUntil).getTime() > nowMs : false;
-
-  const handleNotificationClick = async () => {
-    if (isConversationMuted) {
-      const result = await ConversationAPI.unmuteConversation(conversationId);
-      if (!result.isSuccess) {
-        api.error({ message: "Bật thông báo thất bại", description: result.message, placement: "topRight" });
-        return;
-      }
-      onConversationUpdated?.(result.data);
-      await loadConversationInfo();
-      api.success({ message: "Đã bật thông báo hội thoại", placement: "topRight" });
-      return;
-    }
-
-    setIsMuteModalOpen(true);
-  };
-
-  const handleMuteConversation = async (optionId) => {
-    const mutedUntilValue = resolveMutedUntil(optionId);
-    const result = await ConversationAPI.muteConversation(conversationId, mutedUntilValue);
-    if (!result.isSuccess) {
-      api.error({ message: "Tắt thông báo thất bại", description: result.message, placement: "topRight" });
-      return;
-    }
-
-    onConversationUpdated?.(result.data);
-    await loadConversationInfo();
-    api.success({ message: "Đã tắt thông báo hội thoại", placement: "topRight" });
-  };
-
   const handleJumpToMessage = (messageId) => {
     window.dispatchEvent(
       new CustomEvent("conversation:jump-to-message", {
@@ -399,7 +353,7 @@ export default function InfoPanel({
 
         {/* Khối 2: Các hành động nhanh */}
         <div className="flex w-full items-center justify-center bg-white px-5 py-4">
-          <div className="grid w-full gap-3 grid-cols-3">
+          <div className="grid w-full gap-3 grid-cols-2">
             <ActionBtn 
               label={isGroup ? "Thêm bạn" : "Lập nhóm"}
               onClick={() => {
@@ -419,15 +373,6 @@ export default function InfoPanel({
             >
               {isGroup ? <UserPlus className="h-[18px] w-[18px] text-gray-700" /> : <Users className="h-[18px] w-[18px] text-gray-700" />}
             </ActionBtn>
-
-            <Tooltip title={isConversationMuted ? "Bật thông báo" : "Tắt thông báo"} placement="bottom">
-              <ActionBtn
-                label="Thông báo"
-                onClick={handleNotificationClick}
-              >
-                {isConversationMuted ? <BellOff className="h-[18px] w-[18px] text-gray-700" /> : <Bell className="h-[18px] w-[18px] text-gray-700" />}
-              </ActionBtn>
-            </Tooltip>
 
             <ActionBtn label="Tìm kiếm" onClick={() => setCurrentView("search")}>
               <Search className="h-[18px] w-[18px] text-gray-700" />
@@ -618,13 +563,6 @@ export default function InfoPanel({
       </div>
 
       {/* Modals */}
-      <MuteNotificationModal
-        isOpen={isMuteModalOpen}
-        onClose={() => setIsMuteModalOpen(false)}
-        onConfirm={(optionId) => {
-           handleMuteConversation(optionId);
-        }}
-      />
       <EditNicknameModal
         isOpen={isNicknameModalOpen}
         onClose={() => setIsNicknameModalOpen(false)}
@@ -682,23 +620,6 @@ export default function InfoPanel({
     </div>
   );
 }
-
-const resolveMutedUntil = (optionId) => {
-  const now = new Date();
-  const mutedUntil = new Date(now);
-
-  if (optionId === "30m") mutedUntil.setMinutes(mutedUntil.getMinutes() + 30);
-  else if (optionId === "1h") mutedUntil.setHours(mutedUntil.getHours() + 1);
-  else if (optionId === "24h") mutedUntil.setDate(mutedUntil.getDate() + 1);
-  else if (optionId === "8am") {
-    mutedUntil.setDate(mutedUntil.getDate() + 1);
-    mutedUntil.setHours(8, 0, 0, 0);
-  } else {
-    mutedUntil.setFullYear(mutedUntil.getFullYear() + 100);
-  }
-
-  return mutedUntil.toISOString().slice(0, 19);
-};
 
 // Nút nhỏ gọn lại, thu hẹp padding dọc (py) và chỉnh text nhỏ hơn 1 chút
 function ActionBtn({ label, children, onClick }) {

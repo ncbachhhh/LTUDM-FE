@@ -71,6 +71,14 @@ export default function SearchChat({ conversationId, onClose, onJumpToMessage })
           className="flex-1 bg-transparent border-none outline-none text-sm text-blue-800 placeholder-blue-400 py-1"
           autoFocus 
         />
+        <button
+          type="button"
+          onClick={handleSearch}
+          disabled={loading || keyword.trim().length < 2}
+          className="rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+        >
+          Tìm
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">

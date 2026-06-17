@@ -28,6 +28,8 @@ export default function ChatWindow({
   const [socketStatus, setSocketStatus] = useState("Đang kết nối...");
   const [errorMessage, setErrorMessage] = useState("");
   const [remotePinnedMessages, setRemotePinnedMessages] = useState([]);
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
+  const [pendingJumpMessageId, setPendingJumpMessageId] = useState(null);
   const messageContainerRef = useRef(null);
 
   // Trạng thái phân trang tin nhắn
@@ -38,6 +40,9 @@ export default function ChatWindow({
   const autoReadTimerRef = useRef(null);
   const typingTimerRef = useRef(null);
   const lastTypingStateRef = useRef(false);
+  const messagesRef = useRef([]);
+  const pageRef = useRef(0);
+  const hasMoreRef = useRef(true);
 
   const currentUserId = getCurrentUserId(user);
   const conversationId =
@@ -59,7 +64,27 @@ export default function ChatWindow({
     return message.text || message.content || "";
   };
 
-  const handleJumpToMessage = (messageId) => {
+  const mergeMessages = useCallback((currentMessages, incomingMessages) => {
+    const incomingIds = new Set(incomingMessages.map((message) => String(message.id)));
+    const filteredCurrent = currentMessages.filter(
+      (message) => !incomingIds.has(String(message.id)),
+    );
+    return sortMessagesByCreatedAt([...incomingMessages, ...filteredCurrent]);
+  }, []);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+
+  const handleJumpToMessage = useCallback((messageId) => {
     const element = document.getElementById(`message-${messageId}`);
 
     if (element) {
@@ -67,8 +92,84 @@ export default function ChatWindow({
         behavior: "smooth",
         block: "center",
       });
+      setHighlightedMessageId(messageId);
+      window.setTimeout(() => {
+        setHighlightedMessageId((currentId) =>
+          String(currentId) === String(messageId) ? null : currentId,
+        );
+      }, 1800);
+      return true;
     }
-  };
+    return false;
+  }, []);
+
+  useEffect(() => {
+    if (!pendingJumpMessageId) return undefined;
+
+    const timerId = window.setTimeout(() => {
+      if (handleJumpToMessage(pendingJumpMessageId)) {
+        setPendingJumpMessageId(null);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
+  }, [handleJumpToMessage, messages, pendingJumpMessageId]);
+
+  const loadUntilMessageVisible = useCallback(
+    async (messageId) => {
+      if (!conversationId || !messageId) return;
+      if (handleJumpToMessage(messageId)) return;
+
+      let nextPage = pageRef.current + 1;
+      let canLoadMore = hasMoreRef.current;
+      let mergedMessages = messagesRef.current;
+
+      setLoadingMore(true);
+
+      while (canLoadMore) {
+        const result = await MessageAPI.getMessagesByConversation(
+          conversationId,
+          nextPage,
+          20,
+        );
+
+        if (!result.isSuccess) {
+          break;
+        }
+
+        const mappedMessages = result.data.map((message) =>
+          mapMessageToUI(message, currentUserId),
+        );
+        mergedMessages = mergeMessages(mergedMessages, mappedMessages);
+
+        const reachedEnd = result.data.length < 20;
+        setMessages(mergedMessages);
+        setPage(nextPage);
+        setHasMore(!reachedEnd);
+        messagesRef.current = mergedMessages;
+        pageRef.current = nextPage;
+        hasMoreRef.current = !reachedEnd;
+
+        const found = mergedMessages.some(
+          (message) => String(message.id) === String(messageId),
+        );
+
+        if (found) {
+          setPendingJumpMessageId(messageId);
+          break;
+        }
+
+        if (reachedEnd) {
+          canLoadMore = false;
+        } else {
+          nextPage += 1;
+        }
+      }
+
+      setLoadingMore(false);
+    },
+    [conversationId, currentUserId, handleJumpToMessage, mergeMessages],
+  );
 
   // Kiểm tra xem người dùng có thể nhắn tin không
   const canMessage =
@@ -108,12 +209,12 @@ export default function ChatWindow({
       const eventConversationId = event.detail?.conversationId || event.detail?.conversation_id;
       const messageId = event.detail?.messageId || event.detail?.message_id;
       if (String(eventConversationId) !== String(conversationId) || !messageId) return;
-      handleJumpToMessage(messageId);
+      loadUntilMessageVisible(messageId);
     };
 
     window.addEventListener("conversation:jump-to-message", handleExternalJump);
     return () => window.removeEventListener("conversation:jump-to-message", handleExternalJump);
-  }, [conversationId]);
+  }, [conversationId, loadUntilMessageVisible]);
 
   const scheduleMarkConversationRead = useCallback(() => {
     if (!conversationId) return;
@@ -212,11 +313,7 @@ export default function ChatWindow({
       const newMapped = result.data.map((msg) =>
         mapMessageToUI(msg, currentUserId),
       );
-      setMessages((prev) => {
-        const existingIds = new Set(newMapped.map((m) => String(m.id)));
-        const filteredPrev = prev.filter((m) => !existingIds.has(String(m.id)));
-        return sortMessagesByCreatedAt([...newMapped, ...filteredPrev]);
-      });
+      setMessages((prev) => mergeMessages(prev, newMapped));
 
       // Giữ nguyên vị trí cuộn sau khi chèn tin nhắn cũ vào đầu danh sách
       requestAnimationFrame(() => {
@@ -646,6 +743,7 @@ export default function ChatWindow({
             onPin={handlePin} 
             onRecall={handleRecall} 
             onDelete={handleDeleteForMe}
+            highlightedMessageId={highlightedMessageId}
           />
         )}
       </div>
