@@ -5,11 +5,12 @@ import StatCard from "./StatCard.jsx";
 import SearchChat from "./modals/SearchChat.jsx";
 import FileManager from "./modals/FileManager.jsx";
 import EditNicknameModal from "./modals/EditNickname.jsx";
+import EditGroupNameModal from "./modals/EditGroupName.jsx";
 import ChangeEmojiModal from "./modals/ChangeEmoji.jsx";
 import ConversationAPI from "../../../../../apis/conversation.api.jsx";
 import MessageAPI from "../../../../../apis/message.api.jsx";
-import { DEFAULT_AVATAR } from "../../../../../constants/asset.constants.js";
-import { Image, ChevronRight, ArrowRight, UserPlus, Users, Search } from 'lucide-react';
+import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from "../../../../../constants/asset.constants.js";
+import { Image, ChevronRight, ArrowRight, UserPlus, Users, Search, Pencil } from 'lucide-react';
 import CreateGroupModule from "../chat-list/CreateGroupModule.jsx";
 import AddMemberModule from "./AddMemberModule.jsx";
 import { getAvatarUrl, getDisplayName, getMemberId } from "../../../../../utils/identity.util.js";
@@ -35,6 +36,7 @@ export default function InfoPanel({
   const [conversationInfo, setConversationInfo] = useState(null);
   const [loadingInfo, setLoadingInfo] = useState(false);
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
+  const [isGroupNameModalOpen, setIsGroupNameModalOpen] = useState(false);
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState("default");
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
@@ -65,6 +67,15 @@ export default function InfoPanel({
   const handleNicknameUpdated = (updatedConversation) => {
     if (updatedConversation) onConversationUpdated?.(updatedConversation);
     loadConversationInfo();
+  };
+
+  const handleGroupNameUpdated = (updatedConversation) => {
+    if (updatedConversation) onConversationUpdated?.(updatedConversation);
+    loadConversationInfo();
+    api.success({
+      message: "Đã đổi tên nhóm",
+      placement: "topRight",
+    });
   };
 
   const handleAddMembers = async (newMemberIds) => {
@@ -243,12 +254,12 @@ export default function InfoPanel({
 
   const info = conversationInfo || data || {};
   const displayName = info.display_name || info.displayName || info.title || info.name || "Hội thoại";
-  const avatarUrl = info.avatar_url || info.avatarUrl || info.avatar || DEFAULT_AVATAR;
+  const isGroup = info.type === "GROUP";
+  const avatarUrl = info.avatar_url || info.avatarUrl || info.avatar || (isGroup ? DEFAULT_GROUP_AVATAR : DEFAULT_AVATAR);
   const status = info.status || (info.type === "GROUP" ? "Nhóm chat" : "");
   const settings = info.settings || data?.settings || [];
   const members = info.members || data?.members || [];
   
-  const isGroup = info.type === "GROUP";
   const ownerMember = members.find((member) => member.role === "OWNER");
   const ownerId = getMemberId(ownerMember) || info.createdBy || info.created_by || data?.createdBy || data?.created_by;
   const amIGroupOwner = Boolean(ownerId && String(ownerId) === String(resolvedCurrentUserId));
@@ -353,7 +364,7 @@ export default function InfoPanel({
 
         {/* Khối 2: Các hành động nhanh */}
         <div className="flex w-full items-center justify-center bg-white px-5 py-4">
-          <div className="grid w-full gap-3 grid-cols-2">
+          <div className={`grid w-full gap-3 ${isGroup && amIGroupOwner ? "grid-cols-3" : "grid-cols-2"}`}>
             <ActionBtn 
               label={isGroup ? "Thêm bạn" : "Lập nhóm"}
               onClick={() => {
@@ -373,6 +384,12 @@ export default function InfoPanel({
             >
               {isGroup ? <UserPlus className="h-[18px] w-[18px] text-gray-700" /> : <Users className="h-[18px] w-[18px] text-gray-700" />}
             </ActionBtn>
+
+            {isGroup && amIGroupOwner && (
+              <ActionBtn label="Đổi tên" onClick={() => setIsGroupNameModalOpen(true)}>
+                <Pencil className="h-[18px] w-[18px] text-gray-700" />
+              </ActionBtn>
+            )}
 
             <ActionBtn label="Tìm kiếm" onClick={() => setCurrentView("search")}>
               <Search className="h-[18px] w-[18px] text-gray-700" />
@@ -569,6 +586,13 @@ export default function InfoPanel({
         conversationId={conversationId}
         members={members}
         onUpdated={handleNicknameUpdated}
+      />
+      <EditGroupNameModal
+        isOpen={isGroupNameModalOpen}
+        onClose={() => setIsGroupNameModalOpen(false)}
+        conversationId={conversationId}
+        currentName={displayName}
+        onUpdated={handleGroupNameUpdated}
       />
       <ChangeEmojiModal
         isOpen={isEmojiModalOpen}

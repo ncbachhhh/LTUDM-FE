@@ -128,9 +128,9 @@ export default function SideNav() {
         </defs>
       </svg>
       <div
-        className="relative flex h-full w-20 shrink-0 flex-col items-end py-6"
+        className="side-nav relative flex h-full w-20 shrink-0 flex-col items-end py-6"
         style={{
-          background: "linear-gradient(180deg, #0033FF 0%, #00033D 90%)",
+          background: "var(--side-nav-bg, linear-gradient(180deg, #0033FF 0%, #00033D 90%))",
         }}
       >
         {/* Khu vực 3 nút chính phía trên */}

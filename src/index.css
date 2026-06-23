@@ -13,6 +13,7 @@
   --app-text: #111827;
   --app-muted-text: #6b7280;
   --app-border: #e5e7eb;
+  --side-nav-bg: linear-gradient(180deg, #0033ff 0%, #00033d 90%);
   --side-active-bg: #e8eefb;
 }
 
@@ -27,6 +28,7 @@
   --app-text: #e7edf8;
   --app-muted-text: #9aa7bb;
   --app-border: #2a3955;
+  --side-nav-bg: #242526;
   --side-active-bg: #10182b;
 }
 
@@ -212,6 +214,16 @@ body {
 
 :root[data-theme="dark"] .ant-list-item {
   border-color: var(--app-border) !important;
+}
+
+:root[data-theme="dark"] .side-nav,
+:root[data-theme="dark"] .side-nav button {
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .side-nav svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
 }
 
 .chat-info-button-active {

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "antd";
 import { X, Search, Users, Plus, Check } from "lucide-react";
-import { DEFAULT_AVATAR } from "../../../../../constants/asset.constants.js";
+import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from "../../../../../constants/asset.constants.js";
 import { getAvatarUrl, getDisplayName, getMemberId } from "../../../../../utils/identity.util.js";
 
 const getFriendUserId = (user) => getMemberId(user) || user?._id;
@@ -121,11 +121,7 @@ export default function AddMemberModule({
           </label>
           <div className="flex items-center gap-3 opacity-80">
             <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0F4FF] border border-gray-100 overflow-hidden">
-              {groupAvatar ? (
-                <img src={groupAvatar} alt="Group" className="h-full w-full object-cover" />
-              ) : (
-                <Users size={20} className="text-[#6366F1]" />
-              )}
+              <img src={groupAvatar || DEFAULT_GROUP_AVATAR} alt="Group" className="h-full w-full object-cover" />
             </div>
             <input
               type="text"

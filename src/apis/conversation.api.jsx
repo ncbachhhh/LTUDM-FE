@@ -12,6 +12,7 @@ const API_URL = {
   GET_INFO: (conversationId) => `${API_BASE_URL}/conversations/${conversationId}/info`,
   UPDATE_NICKNAME: (conversationId, memberId) =>
     `${API_BASE_URL}/conversations/${conversationId}/members/${memberId}/nickname`,
+  UPDATE_GROUP_TITLE: (conversationId) => `${API_BASE_URL}/conversations/${conversationId}/title`,
   UPDATE_EMOJI: (conversationId) => `${API_BASE_URL}/conversations/${conversationId}/emoji`,
   MUTE_CONVERSATION: (conversationId) => `${API_BASE_URL}/conversations/${conversationId}/mute`,
   DELETE_CONVERSATION: (conversationId) => `${API_BASE_URL}/conversations/${conversationId}`,
@@ -102,6 +103,18 @@ const ConversationAPI = {
     } catch (error) {
       console.error("UPDATE NICKNAME ERROR:", error);
       return failureResponse(error, "Cập nhật biệt danh thất bại");
+    }
+  },
+
+  updateGroupTitle: async (conversationId, title) => {
+    try {
+      const response = await authorizedAxios().patch(API_URL.UPDATE_GROUP_TITLE(conversationId), {
+        title,
+      });
+      return successResponse(response);
+    } catch (error) {
+      console.error("UPDATE GROUP TITLE ERROR:", error);
+      return failureResponse(error, "Đổi tên nhóm thất bại");
     }
   },
 

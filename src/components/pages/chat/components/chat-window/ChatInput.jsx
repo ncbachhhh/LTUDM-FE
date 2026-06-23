@@ -111,7 +111,7 @@ export default function ChatInput({
   };
 
   return (
-    <div className="border-t border-gray-50 px-6 py-3">
+    <div className="px-6 py-3">
       {/* Reply tin nhắn */}
       {replyingMsg && (
         <div className="mb-3 flex items-center justify-between rounded-lg bg-[#eef1f6] px-4 py-3">
@@ -136,7 +136,7 @@ export default function ChatInput({
       )}
 
       {/* Hàng nhập tin nhắn */}
-      <div className="flex items-center gap-5 border-t border-gray-50 px-6 py-0">
+      <div className="flex items-center gap-5 px-6 py-0">
         {/* Nút đính kèm file */}
         <Tooltip title="Gửi file" placement="top">
           <button

@@ -3,6 +3,10 @@ import { Volume2, Play, Pause, ChevronDown, Check } from "lucide-react";
 import { Switch, message } from "antd";
 import UserAPI from "../../../../apis/user.api.jsx";
 import { useAuth } from "../../../../contexts/auth.context.jsx";
+import {
+  getEffectiveSoundEnabled,
+  SOUND_ENABLED_STORAGE_KEY,
+} from "../../../../utils/sound-setting.util.js";
 
 const SOUND_LIST = [
   { id: "default", name: "sound1 (default)", url: "/sounds/default.mp3" },
@@ -25,7 +29,7 @@ const getUserSoundId = (user) =>
 const NotiSet = () => {
   const { user, setUser } = useAuth();
   const [soundEnabled, setSoundEnabled] = useState(
-    () => user?.soundEnabled ?? user?.sound_enabled ?? true,
+    () => getEffectiveSoundEnabled(user),
   );
   const [showSoundDropdown, setShowSoundDropdown] = useState(false);
   const [savingKey, setSavingKey] = useState("");
@@ -35,6 +39,11 @@ const NotiSet = () => {
 
   const effectiveSelectedSound =
     SOUND_LIST.find((sound) => sound.id === selectedSoundId) || getInitialSound();
+
+  useEffect(() => {
+    setSoundEnabled(getEffectiveSoundEnabled(user));
+    setSelectedSoundId(getUserSoundId(user));
+  }, [user]);
 
   const updateSetting = async (key, value, applyLocalValue) => {
     const rollback = applyLocalValue();
@@ -49,7 +58,11 @@ const NotiSet = () => {
       return;
     }
 
-    setUser(response.data);
+    setUser((previousUser) => ({
+      ...previousUser,
+      ...response.data,
+      [key]: value,
+    }));
   };
 
   // Xử lý phát nghe thử âm thanh
@@ -111,9 +124,23 @@ const NotiSet = () => {
               onChange={(checked) =>
                 updateSetting("sound_enabled", checked, () => {
                   const previous = soundEnabled;
+                  const previousStoredValue = localStorage.getItem(SOUND_ENABLED_STORAGE_KEY);
                   setSoundEnabled(checked);
-                  if (!checked) setShowSoundDropdown(false);
-                  return () => setSoundEnabled(previous);
+                  localStorage.setItem(SOUND_ENABLED_STORAGE_KEY, String(checked));
+                  if (!checked) {
+                    currentAudio?.pause();
+                    setCurrentAudio(null);
+                    setPlayingId(null);
+                    setShowSoundDropdown(false);
+                  }
+                  return () => {
+                    setSoundEnabled(previous);
+                    if (previousStoredValue === null) {
+                      localStorage.removeItem(SOUND_ENABLED_STORAGE_KEY);
+                    } else {
+                      localStorage.setItem(SOUND_ENABLED_STORAGE_KEY, previousStoredValue);
+                    }
+                  };
                 })
               }
             />

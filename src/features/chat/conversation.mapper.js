@@ -1,4 +1,4 @@
-import { DEFAULT_AVATAR, GROUP_AVATAR } from "../../constants/asset.constants.js";
+import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from "../../constants/asset.constants.js";
 import {
   CONVERSATION_TYPE,
   DEFAULT_CONVERSATION_SETTINGS,
@@ -97,7 +97,7 @@ export const mapConversationToContact = (conversation, currentUserId) => {
     ? conversation.display_name || conversation.displayName || conversation.title || "Nhóm chat"
     : getDisplayName(otherMember);
   const avatar = isGroup
-    ? getAvatarUrl(conversation, GROUP_AVATAR)
+    ? getAvatarUrl(conversation, DEFAULT_GROUP_AVATAR)
     : getAvatarUrl(otherMember, DEFAULT_AVATAR);
   const isActive = !isGroup && getOnlineStatus(otherMember);
   const unreadCount = getUnreadCount(conversation);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Edit, Eye, Image as ImageIcon } from "lucide-react";
-import { DEFAULT_AVATAR } from "../../../constants/asset.constants.js";
+import { DEFAULT_AVATAR, PROFILE_COVER } from "../../../constants/asset.constants.js";
 import UpdateProfile from "./components/UpdateProfile";
 import BackGround from "./components/BackGround"; 
 import AvataChange from "./components/AvataChange.jsx";
@@ -21,7 +21,7 @@ export default function ProfilePage({ isOpen, onClose, onOpenEdit }) {
   const [profile, setProfile] = useState({
     name: user?.displayName || user?.display_name || user?.username || "Người dùng",
     avatarUrl: user?.avatarUrl || user?.avatar_url || DEFAULT_AVATAR,
-    bgUrl: user?.backgroundUrl || user?.background_url || "/planet-glass.png",
+    bgUrl: user?.backgroundUrl || user?.background_url || PROFILE_COVER,
     gender: user?.gender || "Nam",
     dob: user?.dob || "2000-04-20", 
     phone: user?.phone || "",
@@ -36,7 +36,7 @@ export default function ProfilePage({ isOpen, onClose, onOpenEdit }) {
       setProfile({
         name: user.displayName || user.display_name || user.username || "Người dùng",
         avatarUrl: user.avatarUrl || user.avatar_url || DEFAULT_AVATAR,
-        bgUrl: user.backgroundUrl || user.background_url || "/planet-glass.png",
+        bgUrl: user.backgroundUrl || user.background_url || PROFILE_COVER,
         gender: user.gender || "Nam",
         dob: user.dob || "2000-04-20",
         phone: user.phone || "",
@@ -242,7 +242,7 @@ export default function ProfilePage({ isOpen, onClose, onOpenEdit }) {
                 await getProfile();
               } else {
                 console.error(res.message);
-                setProfile(p => ({ ...p, bgUrl: user?.backgroundUrl || user?.background_url || "/planet-glass.png" }));
+                setProfile(p => ({ ...p, bgUrl: user?.backgroundUrl || user?.background_url || PROFILE_COVER }));
               }
             } else if (newBg) {
               setProfile(p => ({ ...p, bgUrl: newBg }));
@@ -251,7 +251,7 @@ export default function ProfilePage({ isOpen, onClose, onOpenEdit }) {
                 await getProfile();
               } else {
                 console.error(res.message);
-                setProfile(p => ({ ...p, bgUrl: user?.backgroundUrl || user?.background_url || "/planet-glass.png" }));
+                setProfile(p => ({ ...p, bgUrl: user?.backgroundUrl || user?.background_url || PROFILE_COVER }));
               }
             }
           }}

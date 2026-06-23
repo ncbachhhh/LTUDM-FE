@@ -359,7 +359,7 @@ export default function UserProfileModule({
               {renderPrimaryActions()}
             </div>
 
-            {friendshipStatus !== "BLOCKED" && (
+            {friendshipStatus === "ACCEPTED" && (
               <div className={isModalMode ? "px-6 pb-6" : "px-12 pb-10"}>
                 <button
                   disabled={Boolean(loadingAction)}

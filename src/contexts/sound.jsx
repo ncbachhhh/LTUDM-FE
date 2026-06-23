@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useCallback, useState } from 'react';
 import { useAuth } from './auth.context.jsx';
+import { getEffectiveSoundEnabled } from '../utils/sound-setting.util.js';
 
 const SoundContext = createContext(null);
 const SOUND_URLS = {
@@ -26,9 +27,7 @@ export function SoundProvider({ children }) {
 
   // Hàm phát âm thanh tin nhắn
   const playMessageSound = useCallback(() => {
-    const soundEnabled = user?.soundEnabled ?? user?.sound_enabled ?? true;
-
-    if (!soundEnabled) {
+    if (!getEffectiveSoundEnabled(user)) {
       return;
     }
 

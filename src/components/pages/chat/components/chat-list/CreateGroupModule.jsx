@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Button } from "antd";
 import { X, Search, Users, Camera, Plus, Check } from "lucide-react";
 import FriendshipAPI from "../../../../../apis/friendship.api.jsx";
-import { DEFAULT_AVATAR } from "../../../../../constants/asset.constants.js";
+import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from "../../../../../constants/asset.constants.js";
 import { getAvatarUrl, getDisplayName, getMemberId } from "../../../../../utils/identity.util.js";
 
 const getFriendFromResponse = (friendship) => {
@@ -183,7 +183,10 @@ export default function CreateGroupModule({
               {avatarPreview ? (
                 <img src={avatarPreview} alt="Group Preview" className="h-full w-full object-cover" />
               ) : (
-                <Camera size={18} />
+                <div className="relative h-full w-full">
+                  <img src={DEFAULT_GROUP_AVATAR} alt="Group default" className="h-full w-full object-cover" />
+                  <Camera size={16} className="absolute bottom-1 right-1 rounded-full bg-white/90 p-0.5 text-[#6366F1]" />
+                </div>
               )}
             </button>
             <input
