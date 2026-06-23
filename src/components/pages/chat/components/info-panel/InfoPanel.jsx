@@ -7,10 +7,11 @@ import FileManager from "./modals/FileManager.jsx";
 import EditNicknameModal from "./modals/EditNickname.jsx";
 import EditGroupNameModal from "./modals/EditGroupName.jsx";
 import ChangeEmojiModal from "./modals/ChangeEmoji.jsx";
+import MuteNotificationModal from "./modals/MuteNotificationModal.jsx";
 import ConversationAPI from "../../../../../apis/conversation.api.jsx";
 import MessageAPI from "../../../../../apis/message.api.jsx";
 import { DEFAULT_AVATAR, DEFAULT_GROUP_AVATAR } from "../../../../../constants/asset.constants.js";
-import { Image, ChevronRight, ArrowRight, UserPlus, Users, Search, Pencil } from 'lucide-react';
+import { Image, ChevronRight, ArrowRight, UserPlus, Users, Search, Pencil, Bell, BellOff } from 'lucide-react';
 import CreateGroupModule from "../chat-list/CreateGroupModule.jsx";
 import AddMemberModule from "./AddMemberModule.jsx";
 import { getAvatarUrl, getDisplayName, getMemberId } from "../../../../../utils/identity.util.js";
@@ -23,6 +24,31 @@ const normalizeSetting = (value = "") =>
 
 const isNicknameSetting = (setting) => normalizeSetting(setting).includes("biet danh");
 const isEmojiSetting = (setting) => normalizeSetting(setting).includes("cam xuc");
+
+const toLocalDateTimeString = (date) => {
+  const pad = (value) => String(value).padStart(2, "0");
+
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join("-") + `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
+const getMutedUntilFromOption = (option) => {
+  const now = new Date();
+  const mutedUntil = new Date(now);
+
+  if (option === "30m") mutedUntil.setMinutes(mutedUntil.getMinutes() + 30);
+  else if (option === "1h") mutedUntil.setHours(mutedUntil.getHours() + 1);
+  else if (option === "24h") mutedUntil.setHours(mutedUntil.getHours() + 24);
+  else if (option === "8am") {
+    mutedUntil.setDate(mutedUntil.getDate() + 1);
+    mutedUntil.setHours(8, 0, 0, 0);
+  } else if (option === "forever") mutedUntil.setFullYear(mutedUntil.getFullYear() + 100);
+
+  return toLocalDateTimeString(mutedUntil);
+};
 
 export default function InfoPanel({
   data,
@@ -38,6 +64,8 @@ export default function InfoPanel({
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
   const [isGroupNameModalOpen, setIsGroupNameModalOpen] = useState(false);
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false);
+  const [isMuteModalOpen, setIsMuteModalOpen] = useState(false);
+  const [updatingMute, setUpdatingMute] = useState(false);
   const [currentView, setCurrentView] = useState("default");
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
@@ -122,6 +150,57 @@ export default function InfoPanel({
     });
 
     return result;
+  };
+
+  const handleMuteConversation = async (option) => {
+    if (!conversationId || updatingMute) return;
+
+    setUpdatingMute(true);
+    const result = await ConversationAPI.muteConversation(
+      conversationId,
+      getMutedUntilFromOption(option)
+    );
+    setUpdatingMute(false);
+
+    if (!result.isSuccess) {
+      api.error({
+        message: "Tắt thông báo thất bại",
+        description: result.message,
+        placement: "topRight",
+      });
+      return;
+    }
+
+    if (result.data) onConversationUpdated?.(result.data);
+    await loadConversationInfo();
+    api.success({
+      message: "Đã tắt thông báo",
+      placement: "topRight",
+    });
+  };
+
+  const handleUnmuteConversation = async () => {
+    if (!conversationId || updatingMute) return;
+
+    setUpdatingMute(true);
+    const result = await ConversationAPI.unmuteConversation(conversationId);
+    setUpdatingMute(false);
+
+    if (!result.isSuccess) {
+      api.error({
+        message: "Bật thông báo thất bại",
+        description: result.message,
+        placement: "topRight",
+      });
+      return;
+    }
+
+    if (result.data) onConversationUpdated?.(result.data);
+    await loadConversationInfo();
+    api.success({
+      message: "Đã bật thông báo",
+      placement: "topRight",
+    });
   };
 
   const handleRemoveMember = (memberId, memberName) => {
@@ -259,6 +338,8 @@ export default function InfoPanel({
   const status = info.status || (info.type === "GROUP" ? "Nhóm chat" : "");
   const settings = info.settings || data?.settings || [];
   const members = info.members || data?.members || [];
+  const mutedUntil = info.muted_until || info.mutedUntil || data?.muted_until || data?.mutedUntil || null;
+  const isMuted = mutedUntil ? new Date(mutedUntil).getTime() > Date.now() : false;
   
   const ownerMember = members.find((member) => member.role === "OWNER");
   const ownerId = getMemberId(ownerMember) || info.createdBy || info.created_by || data?.createdBy || data?.created_by;
@@ -358,13 +439,13 @@ export default function InfoPanel({
 
           <Title level={5} className="!mb-0 !text-lg !font-black">{displayName}</Title>
           <Text type="secondary" className="text-[12px] font-bold">
-            {loadingInfo ? <Spin size="small" /> : status}
+            {loadingInfo ? <Spin size="small" /> : isMuted ? `${status} • Đang tắt thông báo` : status}
           </Text>
         </div>
 
         {/* Khối 2: Các hành động nhanh */}
         <div className="flex w-full items-center justify-center bg-white px-5 py-4">
-          <div className={`grid w-full gap-3 ${isGroup && amIGroupOwner ? "grid-cols-3" : "grid-cols-2"}`}>
+          <div className={`grid w-full gap-3 ${isGroup && amIGroupOwner ? "grid-cols-4" : "grid-cols-3"}`}>
             <ActionBtn 
               label={isGroup ? "Thêm bạn" : "Lập nhóm"}
               onClick={() => {
@@ -390,6 +471,21 @@ export default function InfoPanel({
                 <Pencil className="h-[18px] w-[18px] text-gray-700" />
               </ActionBtn>
             )}
+
+            <ActionBtn
+              label={isMuted ? "Bật thông báo" : "Tắt thông báo"}
+              disabled={updatingMute}
+              onClick={() => {
+                if (isMuted) handleUnmuteConversation();
+                else setIsMuteModalOpen(true);
+              }}
+            >
+              {isMuted ? (
+                <Bell className="h-[18px] w-[18px] text-gray-700" />
+              ) : (
+                <BellOff className="h-[18px] w-[18px] text-gray-700" />
+              )}
+            </ActionBtn>
 
             <ActionBtn label="Tìm kiếm" onClick={() => setCurrentView("search")}>
               <Search className="h-[18px] w-[18px] text-gray-700" />
@@ -599,6 +695,11 @@ export default function InfoPanel({
         onClose={() => setIsEmojiModalOpen(false)}
         onSelectEmoji={(newEmoji) => onEmojiChange?.(newEmoji)}
       />
+      <MuteNotificationModal
+        isOpen={isMuteModalOpen}
+        onClose={() => setIsMuteModalOpen(false)}
+        onConfirm={handleMuteConversation}
+      />
       <Modal
         open={isCreateGroupModalOpen}
         onCancel={() => setIsCreateGroupModalOpen(false)}
@@ -646,17 +747,18 @@ export default function InfoPanel({
 }
 
 // Nút nhỏ gọn lại, thu hẹp padding dọc (py) và chỉnh text nhỏ hơn 1 chút
-function ActionBtn({ label, children, onClick }) {
+function ActionBtn({ label, children, onClick, disabled = false }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full flex-col items-center justify-center gap-1.5 rounded-xl bg-[#f1f2f4] hover:bg-[#e5f1ff] py-2.5 px-1 text-gray-700 shadow-sm transition-all duration-200 active:scale-[0.98]"
+      disabled={disabled}
+      className="flex w-full flex-col items-center justify-center gap-1.5 rounded-xl bg-[#f1f2f4] hover:bg-[#e5f1ff] py-2.5 px-1 text-gray-700 shadow-sm transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
     >
       <div className="flex items-center justify-center">
         {children}
       </div>
-      <span className="flex items-center justify-center text-center text-[11px] font-bold text-gray-600 w-full">
+      <span className="flex min-h-[28px] w-full items-center justify-center text-center text-[10px] font-bold leading-tight text-gray-600">
         {label}
       </span>
     </button>
